@@ -153,95 +153,136 @@ CQRS 를 위한 Mypage 서비스만 DB를 구분하여 적용함. 인메모리 D
 
 ## 동기식 호출 과 Fallback 처리
 
-예약 > 결제 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리
-
+분석단계에서의 조건 중 하나로 고객검진요청(Screening)->병원정보관리(Hospital) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 
+고객검진요청 > 병원정보관리 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리
 - FeignClient 서비스 구현
 
 ```
-# PaymentService.java
+# HospitalService.java
 
-@FeignClient(name="payment", url="${feign.payment.url}", fallback = PaymentServiceFallback.class)
-public interface PaymentService {
-    @PostMapping(path="/payments")
-    public void requestPayment(Payment payment);
+@FeignClient(name="HospitalManage", url="${api.hospital.url}")
+public interface HospitalService {
+
+    @RequestMapping(method= RequestMethod.PUT, value="/hospitals/{hospitalId}", consumes = "application/json")
+    public void screeningRequest(@PathVariable("hospitalId") Long hospitalId, @RequestBody Hospital hospital);
+
 }
 ```
 
+- 고객검진요청을 받은 직후(@PostPersist) 병원벙보를 요청하도록 처리
+```
+# Screening.java (Entity)
 
-- 동기식 호출
+    @PostPersist
+    public void onPostPersist(){;
+
+        // 검진 요청함 ( Req / Res : 동기 방식 호출)
+        local.external.Hospital hospital = new local.external.Hospital();
+        hospital.setHospitalId(getHospitalId());
+        ScreeningManageApplication.applicationContext.getBean(local.external.HospitalService.class)
+            .screeningRequest(hospital.getHospitalId(),hospital);
+
+        Requested requested = new Requested();
+        BeanUtils.copyProperties(this, requested);
+        requested.publishAfterCommit();
+    }
+```
+
+- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 병원관리 시스템이 장애가 나면 검진요청 못받는다는 것을 확인
+
 
 ```
-# Booking.java
+#고객검진요청
+http POST localhost:8081/screenings hospitalId=1 hospitalNm="Samsung" custNm="MOON" chkDate="20200910" status="REQUESTED"   #Fail
+http POST localhost:8081/screenings hospitalId=2 hospitalNm="SK" custNm="JUNG" chkDate="20200911" status="REQUESTED"   #Fail
 
-@PostPersist
-public void onPostPersist(){
-    BookingRequested bookingRequested = new BookingRequested();
-    BeanUtils.copyProperties(this, bookingRequested);
-    bookingRequested.setStatus(BookingStatus.BookingRequested.name());
-    bookingRequested.publishAfterCommit();
+#병원정보관리 재기동
+cd HospitalManage
+mvn spring-boot:run
 
-    Payment payment = new Payment();
-    payment.setBookingId(this.id);
-
-    Application.applicationContext.getBean(PaymentService.class).requestPayment(payment);
-}
+#고객검진요청 처리
+http POST localhost:8081/screenings hospitalId=1 hospitalNm="Samsung" custNm="MOON" chkDate="20200910" status="REQUESTED"   #Success
+http POST localhost:8081/screenings hospitalId=2 hospitalNm="SK" custNm="JUNG" chkDate="20200911" status="REQUESTED"   #Success
 ```
 
+- 또한 과도한 요청시에 서비스 장애가 도미노 처럼 벌어질 수 있다. (서킷브레이커, Fallback 처리는 운영단계에서 설명한다.)
 
-- Fallback 서비스 구현
 
+
+
+## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
+
+
+고객검진취소가 이루어진 후에 예약시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하였다.
+ 
+- 이를 위하여 고객검진신청이력에 기록을 남긴 후에 곧바로 검진취소신청 되었다는 되었다는 도메인 이벤트를 카프카로 송출한다(Publish)
+ 
 ```
-# PaymentServiceFallback.java
+package local;
 
-@Component
-public class PaymentServiceFallback implements PaymentService {
+@Entity
+@Table(name="Screening_table")
+public class Screening {
 
-	@Override
-	public void enroll(Payment payment) {
-		System.out.println("Circuit breaker has been opened. Fallback returned instead.");
+ ...
+    @PostUpdate
+    public void onPostUpdate(){
+
+        System.out.println("#### onPostUpdate :" + this.toString());
+
+        if("CANCELED".equals(this.getStatus())) {
+            Canceled canceled = new Canceled();
+            BeanUtils.copyProperties(this, canceled);
+            canceled.publishAfterCommit();
+        }
 	}
-
 }
 ```
-
-
-## 비동기식 호출 과 Fallback 처리
-
-- 비동기식 발신 구현
+- 예약관리 서비스에서는 검진취소신청 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다
 
 ```
-# Booking.java
+package local;
 
-@PostUpdate
-public void onPostUpdate(){
-    if (BookingStatus.BookingApproved.name().equals(this.getStatus())) {
-        BookingApproved bookingApproved = new BookingApproved();
-        BeanUtils.copyProperties(this, bookingApproved);
-        bookingApproved.publishAfterCommit();
+...
+
+@Service
+public class PolicyHandler{
+
+    @StreamListener(KafkaProcessor.INPUT)
+    public void wheneverCanceled_ReservationCancel(@Payload Canceled canceled){
+
+        if(canceled.isMe()){
+            //  검진예약 취소로 인한 취소
+            Reservation temp = reservationRepository.findByScreeningId(canceled.getId());
+            temp.setStatus("CANCELED");
+            reservationRepository.save(temp);
+
+        }
     }
+
 }
-```
-
-- 비동기식 수신 구현
 
 ```
-# PolicyHandler.java
 
-@StreamListener(KafkaProcessor.INPUT)
-public void paymentApproved(@Payload PaymentApproved paymentApproved){
-    if(paymentApproved.isMe()){
-	bookingRepository.findById(paymentApproved.getBookingId())
-	    .ifPresent(
-			booking -> {
-				booking.setStatus(BookingStatus.BookingApproved.name());;
-				bookingRepository.save(booking);
-		    }
-	    )
-	;
-    }
-}
+예약관리 시스템은 병원/검진신청과 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 예약관리시스템이 유지보수로 인해 잠시 내려간 상태라도 예약신청을 받는데 문제가 없다.
+
 ```
+# 예약관리 서비스 (Reservation) 를 잠시 내려놓음 (ctrl+c)
 
+#검진신청취소처리
+http PUT localhost:8081/screenings hospitalId=1 hospitalNm="Samsung" chkDate= "20200907" custNm= "Moon44" status= "Canceled"   #Success
+http PUT localhost:8081/screenings hospitalId=2 hospitalNm="SK" chkDate= "20200908" custNm= "YOU" status= "Canceled"   #Success
+
+#예약관리상태 확인
+http localhost:8083/reservations     # 예약상태 안바뀜 확인
+
+#예약관리 서비스 기동
+cd ReservationManage
+mvn spring-boot:run
+
+#예약관리상태 확인
+http localhost:8083/reservations     # 예약상태가 "취소됨"으로 확인
+```
 
 # 운영
 

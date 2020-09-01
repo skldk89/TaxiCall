@@ -247,13 +247,17 @@ public void paymentApproved(@Payload PaymentApproved paymentApproved){
 
 ## CI/CD 설정
 
-- CodeBuild 기반으로 파이프라인 구성
+각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 AWS CodeBuild를 사용하였으며, 
+pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 포함되었다.
+- CodeBuild 기반으로 CI/CD 파이프라인 구성
+MSA 서비스별 CodeBuild 프로젝트 생성하여  CI/CD 파이프라인 구성
 
-<img src="https://user-images.githubusercontent.com/62231786/85087121-927ed900-b217-11ea-8f57-bbd4efc25997.JPG"/>
+<img src="https://user-images.githubusercontent.com/67447253/91837032-92bf3a00-ec86-11ea-96e6-263a590cd849.JPG"/>
 
-- Git Hook 연경
+- Git Hook 연결
+연결한 Github의 소스 변경 발생 시 자동으로 빌드 및 배포 되도록 Git Hook 연결 설정
 
-<img src="https://user-images.githubusercontent.com/62231786/85087123-93b00600-b217-11ea-90b3-4de01d03583a.JPG" />
+<img src="https://user-images.githubusercontent.com/67447253/91837300-0103fc80-ec87-11ea-9698-fc1afb52893c.JPG" />
 
 
 ## 동기식 호출 / 서킷 브레이킹 / 장애격리
@@ -617,79 +621,91 @@ Shortest transaction:           0.00
 
 ## 무정지 재배포
 
-* 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
-(위의 시나리오에서 제거되었음)
+먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler, CB 설정을 제거함
+Readiness Probe 미설정 시 무정지 재배포 가능여부 확인을 위해 buildspec.yml의 Readiness Probe 설정을 제거함
 
 - seige 로 배포작업 직전에 워크로드를 모니터링 함.
 ```
-$ siege -v -c1 -t300S -r10 --content-type "application/json" 'http://booking:8080/bookings'
+$ siege -v -c1 -t240S --content-type "application/json" 'http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals POST {"id": "101","hospitalId":"2","hospitalNm":"bye","chkDate":"0909","pcnt":20}'
 
-** SIEGE 4.0.5
+** SIEGE 4.0.4
 ** Preparing 100 concurrent users for battle.
 The server is now under siege...
 
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://booking:8080/bookings
+HTTP/1.1 200     0.48 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 200     0.49 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 200     0.63 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 200     0.48 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
 :
 
 ```
 
-- 새버전으로의 배포 시작
+- CI/CD 파이프라인을 통해 새버전으로 재배포 작업함
+Git hook 연동 설정되어 Github의 소스 변경 발생 시 자동 빌드 배포됨
+재배포 작업 중 서비스 중단됨 (503 오류 발생)
 ```
-# 컨테이너 이미지 Update (readness, liveness 미설정 상태)
-- kubectl apply -f booking_na.yaml 실행
+HTTP/1.1 200     0.48 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 200     0.55 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 503     0.47 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 503     0.48 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 503     0.51 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 503     0.47 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 503     0.48 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 503     0.53 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 503     0.50 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 503     0.45 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+:
 
 ```
 
 - seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
 ```
-Transactions:                  18182 hits
-Availability:                  94.67 %
-Elapsed time:                  56.86 secs
-Data transferred:               6.14 MB
-Response time:                  0.00 secs
-Transaction rate:             319.77 trans/sec
-Throughput:                     0.11 MB/sec
-Concurrency:                    0.93
-Successful transactions:       18182
-Failed transactions:            1024
-Longest transaction:            0.73
-Shortest transaction:           0.00
+Transactions:                    372 hits
+Availability:                  90.29 %
+Elapsed time:                 205.09 secs
+Data transferred:               0.00 MB
+Response time:                  0.55 secs
+Transaction rate:               1.81 trans/sec
+Throughput:                     0.00 MB/sec
+Concurrency:                    1.00
+Successful transactions:         372
+Failed transactions:              40
+Longest transaction:            1.50
+Shortest transaction:           0.43
 
 ```
-- 배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함:
+- 배포기간중 Availability 가 평소 100%에서 90% 대로 떨어지는 것을 확인. 
+원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문으로 판단됨. 
+이를 막기위해 Readiness Probe 를 설정함 (buildspec.yml의 Readiness Probe 설정)
 ```
-# deployment.yaml 의 readiness probe 의 설정:
-- kubectl apply -f booking.yaml 실행
+# buildspec.yaml 의 Readiness probe 의 설정:
+- CI/CD 파이프라인을 통해 새버전으로 재배포 작업함
 
-NAME                           READY   STATUS        RESTARTS   AGE
-pod/alarm-bc469c66b-nn7r9      2/2     Running       1          58m
-pod/booking-67d766dc78-xzrzr   1/1     Terminating   0          73s
-pod/booking-6f85b67876-94nxl   1/1     Running       0          34s
-pod/gateway-7bd59945-g9hdq     2/2     Running       0          58m
-pod/html-78f648d5b-zhv2b       2/2     Running       0          58m
-pod/pay-755d679cbf-f56nd       1/1     Running       0          3m33s
-pod/pay-755d679cbf-lmtvh       1/1     Running       0          8m16s
-pod/pay-755d679cbf-qjbw6       1/1     Running       0          3m48s
-pod/siege                      1/1     Running       0          13m
+readinessProbe:
+    httpGet:
+      path: '/actuator/health'
+      port: 8080
+    initialDelaySeconds: 30
+    timeoutSeconds: 2
+    periodSeconds: 5
+    failureThreshold: 10
+    
 ```
 
 - 동일한 시나리오로 재배포 한 후 Availability 확인:
 ```
-Transactions:                  13547 hits
+Transactions:                    234 hits
 Availability:                 100.00 %
-Elapsed time:                  41.53 secs
-Data transferred:               4.57 MB
-Response time:                  0.00 secs
-Transaction rate:             326.20 trans/sec
-Throughput:                     0.11 MB/sec
-Concurrency:                    0.94
-Successful transactions:       13547
+Elapsed time:                 119.04 secs
+Data transferred:               0.00 MB
+Response time:                  0.51 secs
+Transaction rate:               1.97 trans/sec
+Throughput:                     0.00 MB/sec
+Concurrency:                    1.00
+Successful transactions:         234
 Failed transactions:               0
-Longest transaction:            0.70
-Shortest transaction:           0.00
+Longest transaction:            1.57
+Shortest transaction:           0.41
 
 ```
 

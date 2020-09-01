@@ -305,76 +305,115 @@ MSA 서비스별 CodeBuild 프로젝트 생성하여  CI/CD 파이프라인 구�
 
 ## 동기식 호출 / 서킷 브레이킹 / 장애격리
 
-### 서킷 브레이킹 프레임워크의 선택 > istio-injection + DestinationRule
+### 서킷 브레이킹 istio-injection + DestinationRule
 
 * istio-injection 적용 (기 적용완료)
 ```
-kubectl label namespace mybnb istio-injection=enabled
+kubectl label namespace skcc-ns istio-injection=enabled
 ```
-* 예약, 결제 서비스 모두 아무런 변경 없음
 
 * 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
 - 동시사용자 100명
 - 60초 동안 실시
 ```
-$ siege -v -c100 -t60S -r10 --content-type "application/json" 'http://booking:8080/bookings POST {"roomId":1, "name":"호텔", "price":1000, "address":"서울", "host":"Superman", "guest":"배트맨", "usedate":"20201230"}'
-
-HTTP/1.1 201     2.19 secs:     321 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     3.91 secs:     321 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     2.22 secs:     321 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     2.30 secs:     321 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     2.23 secs:     321 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     2.06 secs:     321 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     0.11 secs:     321 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 201     2.02 secs:     321 bytes ==> POST http://booking:8080/bookings
-
+$siege -c100 -t60S -r10  -v http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals 
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.00 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.00 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.00 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
 ```
 * 서킷 브레이킹을 위한 DestinationRule 적용
 ```
-cd mybnb/yaml
-kubectl apply -f dr-pay.yaml
+#dr-hospital.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: dr-hospital
+  namespace: skcc-ns
+spec:
+  host: hospitalmanage
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
+    outlierDetection:
+      interval: 1s
+      consecutiveErrors: 2
+      baseEjectionTime: 10s
+      maxEjectionPercent: 100
+```
 
-HTTP/1.1 500     0.28 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     1.35 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.28 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     2.29 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     2.41 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     2.15 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.24 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.41 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.21 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.33 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.43 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.34 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.32 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.33 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.36 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.33 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.34 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.43 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.46 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.38 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     2.33 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.39 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.49 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     2.21 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     2.32 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.42 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.38 secs:     250 bytes ==> POST http://booking:8080/bookings
-HTTP/1.1 500     0.28 secs:     250 bytes ==> POST http://booking:8080/bookings
 
-Transactions:                   1986 hits
-Availability:                  63.88 %
-Elapsed time:                  47.75 secs
-Data transferred:               0.88 MB
-Response time:                  2.39 secs
-Transaction rate:              41.59 trans/sec
+```
+$kubectl apply -f dr-hospital.yaml
+
+$siege -c100 -t60S -r10  -v http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals 
+HTTP/1.1 200   0.03 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.04 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.02 secs:      95 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      95 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.03 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
+
+Transactions:                    194 hits
+Availability:                  16.68 %
+Elapsed time:                  59.76 secs
+Data transferred:               1.06 MB
+Response time:                  0.03 secs
+Transaction rate:               3.25 trans/sec
 Throughput:                     0.02 MB/sec
-Concurrency:                   99.57
-Successful transactions:        1986
-Failed transactions:            1123
-Longest transaction:            7.53
-Shortest transaction:           0.05
+Concurrency:                    0.10
+Successful transactions:         194
+Failed transactions:             969
+Longest transaction:            0.04
+Shortest transaction:           0.00
+
+
 ```
 
 * DestinationRule 적용되어 서킷 브레이킹 동작 확인 (kiali 화면)
@@ -382,9 +421,9 @@ Shortest transaction:           0.05
 
 * 다시 부하 발생하여 DestinationRule 적용 제거하여 정상 처리 확인
 ```
-cd mybnb/yaml
-kubectl delete -f dr-pay.yaml
+kubectl delete -f dr-hosptal.yaml
 ```
+
 
 ### 오토스케일 아웃
 앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다. 
@@ -599,72 +638,89 @@ Shortest transaction:           0.41
 ## ConfigMap 사용
 
 시스템별로 또는 운영중에 동적으로 변경 가능성이 있는 설정들을 ConfigMap을 사용하여 관리합니다.
+Application에서 특정 도메일 URL을 ConfigMap 으로 설정하여 운영/개발등 목적에 맞게 변경가능합니다.  
 
-* configmap.yaml
+* my-config.yaml
 ```
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mybnb-config
-  namespace: mybnb
+  name: my-config
+  namespace: skcc-ns
 data:
-  api.url.payment: http://pay:8080
-  alarm.prefix: Hello
+  api.hospital.url: http://HospitalManage:8080
 ```
-* booking.yaml (configmap 사용)
+my-config라는 ConfigMap을 생성하고 key값에 도메인 url을 등록한다. 
+
+* ScreeningManage/buildsepc.yaml (configmap 사용)
 ```
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: booking
-  namespace: mybnb
-  labels:
-    app: booking
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: booking
-  template:
-    metadata:
-      labels:
-        app: booking
-    spec:
-      containers:
-        - name: booking
-          image: 496278789073.dkr.ecr.ap-northeast-2.amazonaws.com/mybnb-booking:latest
-          ports:
-            - containerPort: 8080
-          env:
-            - name: api.url.payment
-              valueFrom:
-                configMapKeyRef:
-                  name: mybnb-config
-                  key: api.url.payment
-          resources:
+ cat  <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: $_PROJECT_NAME
+          namespace: $_NAMESPACE
+          labels:
+            app: $_PROJECT_NAME
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: $_PROJECT_NAME
+          template:
+            metadata:
+              labels:
+                app: $_PROJECT_NAME
+            spec:
+              containers:
+                - name: $_PROJECT_NAME
+                  image: $AWS_ACCOUNT_ID.dkr.ecr.$_AWS_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
+                  ports:
+                    - containerPort: 8080
+                  env:
+                    - name: api.hospital.url
+                      valueFrom:
+                        configMapKeyRef:
+                          name: my-config
+                          key: api.hospital.url
+                  imagePullPolicy: Always
+                
+        EOF
 ```
-* kubectl describe pod/booking-588cb89c6b-gmw8h -n mybnb
+Deployment yaml에 해단 configMap 적용
+
+* HospitalService.java
+```
+@FeignClient(name="HospitalManage", url="${api.hospital.url}")//,fallback = HospitalServiceFallback.class)
+public interface HospitalService {
+
+    @RequestMapping(method= RequestMethod.PUT, value="/hospitals/{hospitalId}", consumes = "application/json")
+    public void screeningRequest(@PathVariable("hospitalId") Long hospitalId, @RequestBody Hospital hospital);
+
+}
+```
+url에 configMap 적용
+
+* kubectl describe pod screeningmanage-9498f6bdc-qtclh  -n skcc-ns
 ```
 Containers:
-  booking:
-    Container ID:   docker://0b90fe0d06629fc367fa83273abecba2724958a0b838c058553d193a86c3e0fe
-    Image:          496278789073.dkr.ecr.ap-northeast-2.amazonaws.com/mybnb-booking:latest
-    Image ID:       docker-pullable://496278789073.dkr.ecr.ap-northeast-2.amazonaws.com/mybnb-booking@sha256:59abe6ec02e165fda1c8e3dbf3e8bcedf7fb5edc53fcffca5f708a70969452f3
+  screeningmanage:
+    Container ID:   docker://8415f0125bac0264b5f77d14ed8ee7c28bc177e2cce9141a4c36e076c7920971
+    Image:          052937454741.dkr.ecr.us-east-2.amazonaws.com/screeningmanage:f8102f4078683bdbf345cc5cae7983b1cb8ea                                                                      668
+    Image ID:       docker-pullable://052937454741.dkr.ecr.us-east-2.amazonaws.com/screeningmanage@sha256:ebc8945df607                                                                      acc63d87e20d345e17245e3472fec43a9690e8ab9ca959573c9b
     Port:           8080/TCP
     Host Port:      0/TCP
     State:          Running
-      Started:      Mon, 03 Aug 2020 16:48:56 +0900
+      Started:      Tue, 01 Sep 2020 07:55:29 +0000
     Ready:          True
     Restart Count:  0
-    Limits:
-      cpu:  500m
-    Requests:
-      cpu:      200m
-    Liveness:   http-get http://:8080/actuator/health delay=120s timeout=2s period=5s #success=1 #failure=5
-    Readiness:  http-get http://:8080/actuator/health delay=10s timeout=2s period=5s #success=1 #failure=10
+    Liveness:       http-get http://:8080/actuator/health delay=120s timeout=2s period=5s #success=1 #failure=5
+    Readiness:      http-get http://:8080/actuator/health delay=30s timeout=2s period=5s #success=1 #failure=10
     Environment:
-      api.url.payment:  <set to the key 'api.url.payment' of config map 'mybnb-config'>  Optional: false
+      api.hospital.url:  <set to the key 'api.hospital.url' of config map 'my-config'>  Optional: false
     Mounts:
-      /var/run/secrets/kubernetes.io/serviceaccount from default-token-mrczz (ro)
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-xw8ld (ro)
+
 ```
+kubectl describe 명령으로 컨테이너에 configMap 적용여부를 알 수 있다. 
 

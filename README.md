@@ -96,7 +96,7 @@
 * MyPage 는 CQRS 를 위한 서비스
 
 | MSA | 기능 | port | 조회 API | Gateway 사용시 |
-|---|:---:|:---:|:---:|:---:|
+|---|:---:|:---:|---|---|
 | Screening | 콘서트 관리 | 8081 | http://localhost:8081/screenings | http://ScreeningManage:8080/screenings |
 | Hospital | 예약 관리 | 8082 | http://localhost:8082/hospitals | http://HospitalManage:8080/hospitals |
 | Reservation | 결제 관리 | 8083 | http://localhost:8083/reservations | http://ReservationManage:8080/reservations |

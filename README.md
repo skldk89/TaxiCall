@@ -378,8 +378,7 @@ Shortest transaction:           0.05
 ```
 
 * DestinationRule 적용되어 서킷 브레이킹 동작 확인 (kiali 화면)
-![슬라이드4](https://user-images.githubusercontent.com/61722732/89362532-167a1b00-d709-11ea-8981-07bf788080b5.JPG)
-
+![Kaili_DR RUlE적용](https://user-images.githubusercontent.com/67453893/91850567-b7bca880-ec98-11ea-8f9b-59b4223fb046.png)
 
 * 다시 부하 발생하여 DestinationRule 적용 제거하여 정상 처리 확인
 ```

@@ -60,11 +60,11 @@
 
 | 기능 | 이벤트 Payload |
 |---|:---:|
-| 관리자가 콘서트를 등록한다. | ![image](https://user-images.githubusercontent.com/62231786/85086806-aa099200-b216-11ea-8ca4-50eb47c3b02b.JPG) |
-| 사용자가 회원가입을 한다. | ![image](https://user-images.githubusercontent.com/62231786/85086808-aa099200-b216-11ea-895e-3a7dcfeb4b71.JPG) |
-| 사용자가 콘서트를 예약한다.</br>예약 시, 결제가 요청된다. | ![image](https://user-images.githubusercontent.com/62231786/85086809-aaa22880-b216-11ea-9d5c-fcf88fbd2a27.JPG) |
-| 사용자가 예약한 콘서트를 결제한다.</br>결제가 완료되면 콘서트예약이 승인된다.</br>콘서트예약이 승인되면 티켓 수가 변경된다. (감소)| ![image](https://user-images.githubusercontent.com/62231786/85086811-aaa22880-b216-11ea-96aa-5ec29cd8a5d6.JPG) | 
-| 사용자가 예약 취소를 하면 결제가 취소된다.</br>결제가 취소되면 티켓 수가 변경된다. (증가) | ![image](https://user-images.githubusercontent.com/62231786/85086805-a8d86500-b216-11ea-900a-be7c1555e61d.JPG) |
+| 관관리자가 병원 정보( 병원이름, 예약일, 가능인원수)를 등록한다. | 제일 아래와 같은 형태로 kafka 메시지를 찍어준다. |
+| 고객이 건강검진을 예약을 요청한다. (Sync)</bt>해당 병원의 검진가능 인원이 감소한다. (Sync)</br>예약 완료로 변경된다. (Sync)</br> 예약관리의 해당 내역의 상태가 등록된다. | 제일 아래와 같은 형태로 kafka 메시지를 찍어준다. |
+| 고객이 건강검진 예약을 취소한다.</br>취소 시, 병원의 검진가능 인원이 증가한다. (Async)</br>예약관리의 해당 내역의 상태가 예약 취소로 변경된다. | 제일 아래와 같은 형태로 kafka 메시지를 찍어준다. |
+| 관리자가 병원 정보를 삭제한다.</br>해당 병원에 예약한 예약자의 상태를 예약 강제 취소 변경한다.</br>예약관리의 해당 내역의 상태가 예약 강제 취소로 변경된다. | 제일 아래와 같은 형태로 kafka 메시지를 찍어준다. | 
+| 건강검진 예약내역 상태를 조회한다.| 제일 아래와 같은 형태로 kafka 메시지를 찍어준다. |
 | 사용자가 콘서트 예약내역 상태를 조회한다. | [{"id":1,"bookingId":6659,"concertId":1,"userId":1,"status":"BookingRequested"},</br> {"id":2,"bookingId":6660,"concertId":3,"userId":1,"status":"PaymentCanceled"}] |
 
 # 분석/설계
@@ -95,13 +95,13 @@
 분석/설계 단계에서 도출된 MSA는 총 5개로 아래와 같다.
 * MyPage 는 CQRS 를 위한 서비스
 
-| MSA | 기능 | port | 조회 API |
-|---|:---:|:---:|:---:|
-| Concert | 콘서트 관리 | 8081 | http://localhost:8081/cooncerts |
-| Booking | 예약 관리 | 8082 | http://localhost:8082/bookings |
-| Payment | 결제 관리 | 8083 | http://localhost:8083/payments |
-| User | 사용자 관리 | 8084 | http://localhost:8084/users |
-| MyPage | 콘서트 예약내역 관리 | 8086 | http://localhost:8085/bookingHistories |
+| MSA | 기능 | port | 조회 API | Gateway 사용시 |
+|---|:---:|:---:|:---:|:---:|
+| Screening | 콘서트 관리 | 8081 | http://localhost:8081/screenings | http://ScreeningManage:8080/screenings |
+| Hospital | 예약 관리 | 8082 | http://localhost:8082/hospitals | http://HospitalManage:8080/hospitals |
+| Reservation | 결제 관리 | 8083 | http://localhost:8083/reservations | http://ReservationManage:8080/reservations |
+| MyPage | 사용자 관리 | 8084 | http://localhost:8084/myPages | http://MyPage:8080/myPages |
+
 
 
 ## Gateway 적용
@@ -112,26 +112,22 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: concert
-          uri: http://concert:8080
+        - id: ScreeningManage
+          uri: http://ScreeningManage:8080
           predicates:
-            - Path=/concerts/** 
-        - id: booking
-          uri: http://booking:8080
+            - Path=/screenings/**
+        - id: HospitalManage
+          uri: http://HospitalManage:8080
           predicates:
-            - Path=/bookings/** 
-        - id: payment
-          uri: http://payment:8080
+            - Path=/hospitals/** 
+        - id: ReservationManage
+          uri: http://ReservationManage:8080
           predicates:
-            - Path=/payments/** 
-        - id: user
-          uri: http://user:8080
+            - Path=/reservations/** 
+        - id: MyPage
+          uri: http://MyPage:8080
           predicates:
-            - Path=/users/** 
-        - id: mypage
-          uri: http://mypage:8080
-          predicates:
-            - Path=/bookingHistories/**
+            - Path= /myPages/**
 ```
 
 

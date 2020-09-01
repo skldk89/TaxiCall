@@ -192,6 +192,8 @@ public interface HospitalService {
 
 
 ```
+#병원정보관리(Hospital) 서비스를 잠시 내려놓음 (ctrl+c)
+
 #고객검진요청
 http POST localhost:8081/screenings hospitalId=1 hospitalNm="Samsung" custNm="MOON" chkDate="20200910" status="REQUESTED"   #Fail
 http POST localhost:8081/screenings hospitalId=2 hospitalNm="SK" custNm="JUNG" chkDate="20200911" status="REQUESTED"   #Fail
@@ -267,7 +269,7 @@ public class PolicyHandler{
 예약관리 시스템은 병원/검진신청과 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 예약관리시스템이 유지보수로 인해 잠시 내려간 상태라도 예약신청을 받는데 문제가 없다.
 
 ```
-# 예약관리 서비스 (Reservation) 를 잠시 내려놓음 (ctrl+c)
+#예약관리 서비스 (Reservation) 를 잠시 내려놓음 (ctrl+c)
 
 #검진신청취소처리
 http PUT localhost:8081/screenings hospitalId=1 hospitalNm="Samsung" chkDate= "20200907" custNm= "Moon44" status= "Canceled"   #Success

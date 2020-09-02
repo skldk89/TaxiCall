@@ -436,7 +436,7 @@ $kubectl get deployment metrics-server -n kube-system
 
 * (istio injection 적용한 경우) istio injection 적용 해제
 ```
-kubectl label namespace mybnb istio-injection=disabled --overwrite
+kubectl label namespace skcc-ns istio-injection=disabled --overwrite
 ```
 
 - Deployment 배포시 resource 설정 적용
@@ -490,13 +490,11 @@ replicaset.apps/screeningmanage-9498f6bdc      1         1         1       17h
 
 NAME                                                 REFERENCE                   TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
 horizontalpodautoscaler.autoscaling/hospitalmanage   Deployment/hospitalmanage   2%/15%   1         10        0          7s
-
 ```
 
 - siege로 워크로드를 3분 동안 걸어준다.
 ```
 $  siege -c100 -t60S -r10  -v http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-
 ```
 
 - 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
@@ -516,7 +514,6 @@ hospitalmanage   1/5     4            1           11h
 hospitalmanage   1/5     4            1           11h
 hospitalmanage   1/5     4            1           11h
 hospitalmanage   1/5     5            1           11h
-
 ```
 
 - kubectl get으로 autoscaling을 확인하면 CPU 사용률이 64%로 증가됐다.
@@ -525,7 +522,6 @@ $kubectl get horizontalpodautoscaler.autoscaling/hospitalmanage -n skcc-ns
 NAME                                                 REFERENCE                   TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
 horizontalpodautoscaler.autoscaling/hospitalmanage   Deployment/hospitalmanage   64%/15%   1         10        5          2m54s
 ```
-
 
 - siege 의 로그를 보면 Availability가 100%로 유지된 것을 확인 할 수 있다.  
 ```
@@ -543,6 +539,7 @@ Failed transactions:               0
 Longest transaction:            5.85
 Shortest transaction:           0.00
 ```
+
 
 ## 무정지 재배포
 

@@ -60,11 +60,11 @@
 
 | 기능 | 이벤트 Payload |
 |---|:---:|
-| 관관리자가 병원 정보( 병원이름, 예약일, 가능인원수)를 등록한다. |![image](https://user-images.githubusercontent.com/25805562/91837451-3577b880-ec87-11ea-88b1-dc4e9d74790d.png)|
-| 고객이 건강검진을 예약을 요청한다. (Sync)</bt>해당 병원의 검진가능 인원이 감소한다. (Sync)</br>예약 완료로 변경된다. (Sync)</br> 예약관리의 해당 내역의 상태가 등록된다. |![image](https://user-images.githubusercontent.com/25805562/91837806-7a035400-ec87-11ea-8966-09403bd5e7eb.png)|
-| 고객이 건강검진 예약을 취소한다.</br>취소 시, 병원의 검진가능 인원이 증가한다. (Async)</br>예약관리의 해당 내역의 상태가 예약 취소로 변경된다. | ![image](https://user-images.githubusercontent.com/25805562/91837990-c2227680-ec87-11ea-9fb1-530410922532.png) |
-| 관리자가 병원 정보를 삭제한다.</br>해당 병원에 예약한 예약자의 상태를 예약 강제 취소 변경한다.</br>예약관리의 해당 내역의 상태가 예약 강제 취소로 변경된다. | ![image](https://user-images.githubusercontent.com/25805562/91838119-f007bb00-ec87-11ea-9edd-38d9963f9ee0.png) | 
-| 건강검진 예약내역 상태를 조회한다.| ![image](https://user-images.githubusercontent.com/25805562/91838415-6ad0d600-ec88-11ea-9df8-1c6895fe6d75.png) |
+| 1.관관리자가 병원 정보( 병원이름, 예약일, 가능인원수)를 등록한다. |![image](https://user-images.githubusercontent.com/25805562/91837451-3577b880-ec87-11ea-88b1-dc4e9d74790d.png)|
+| 2.고객이 건강검진을 예약을 요청한다. (Sync)</br>3.해당 병원의 검진가능 인원이 감소한다. (Sync)</br>4.예약 완료로 변경된다. (Sync)</br>5.예약관리의 해당 내역의 상태가 등록된다. |![image](https://user-images.githubusercontent.com/25805562/91837806-7a035400-ec87-11ea-8966-09403bd5e7eb.png)|
+| 6.고객이 건강검진 예약을 취소한다.</br>7.취소 시, 병원의 검진가능 인원이 증가한다. (Async)</br>8.예약관리의 해당 내역의 상태가 예약 취소로 변경된다. | ![image](https://user-images.githubusercontent.com/25805562/91837990-c2227680-ec87-11ea-9fb1-530410922532.png) |
+| 9.관리자가 병원 정보를 삭제한다.</br>10.해당 병원에 예약한 예약자의 상태를 예약 강제 취소 변경한다.</br>11.예약관리의 해당 내역의 상태가 예약 강제 취소로 변경된다. | ![image](https://user-images.githubusercontent.com/25805562/91838119-f007bb00-ec87-11ea-9edd-38d9963f9ee0.png) | 
+| 12.건강검진 예약내역 상태를 조회한다.| ![image](https://user-images.githubusercontent.com/25805562/91838415-6ad0d600-ec88-11ea-9df8-1c6895fe6d75.png) |
 
 # 분석/설계
 

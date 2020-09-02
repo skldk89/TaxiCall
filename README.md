@@ -421,7 +421,7 @@ Shortest transaction:           0.00
 
 * 다시 부하 발생하여 DestinationRule 적용 제거하여 정상 처리 확인
 ```
-kubectl delete -f dr-hosptal.yaml
+kubectl delete -f dr-hospital.yaml
 ```
 
 

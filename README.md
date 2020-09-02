@@ -516,9 +516,9 @@ hospitalmanage   1/5     4            1           11h
 hospitalmanage   1/5     5            1           11h
 ```
 
-- kubectl get으로 autoscaling을 확인하면 CPU 사용률이 64%로 증가됐다.
+- kubectl get으로 HPA을 확인하면 CPU 사용률이 64%로 증가됐다.
 ```
-$kubectl get horizontalpodautoscaler.autoscaling/hospitalmanage -n skcc-ns
+$kubectl get hpa hospitalmanage -n skcc-ns 
 NAME                                                 REFERENCE                   TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
 horizontalpodautoscaler.autoscaling/hospitalmanage   Deployment/hospitalmanage   64%/15%   1         10        5          2m54s
 ```
@@ -538,6 +538,11 @@ Successful transactions:       26446
 Failed transactions:               0
 Longest transaction:            5.85
 Shortest transaction:           0.00
+```
+
+- HPA 삭제 
+```
+$kubectl kubectl delete hpa hospitalmanage  -n skcc-ns
 ```
 
 

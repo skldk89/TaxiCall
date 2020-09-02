@@ -493,7 +493,7 @@ NAME                                                 REFERENCE                  
 horizontalpodautoscaler.autoscaling/hospitalmanage   Deployment/hospitalmanage   2%/15%   1         10        0          7s
 ```
 
-- siege로 워크로드를 3분 동안 걸어준다.
+- siege로 워크로드를 1분 동안 걸어준다.
 ```
 $  siege -c100 -t60S -r10  -v http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
 ```

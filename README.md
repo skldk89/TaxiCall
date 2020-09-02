@@ -428,104 +428,106 @@ kubectl delete -f dr-hosptal.yaml
 ### 오토스케일 아웃
 앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다. 
 
+* Metric Server 설치(CPU 사용량 체크를 위해)
+```
+$kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml
+$kubectl get deployment metrics-server -n kube-system
+```
+
 * (istio injection 적용한 경우) istio injection 적용 해제
 ```
 kubectl label namespace mybnb istio-injection=disabled --overwrite
-
-kubectl apply -f booking.yaml
-kubectl apply -f pay.yaml
 ```
 
-* (Spring FeignClient + Hystrix 적용한 경우) 위에서 설정된 CB는 제거해야함.
-```
-kubectl apply -f booking.yaml
-kubectl apply -f pay.yaml
-```
-
-- 결제서비스 배포시 resource 설정 적용되어 있음
+- Deployment 배포시 resource 설정 적용
 ```
     spec:
       containers:
           ...
           resources:
             limits:
-              cpu: 500m
+              cpu: 500m 
             requests:
-              cpu: 200m
+              cpu: 200m 
 ```
 
-- 결제서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 3개까지 늘려준다:
+- replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다:
 ```
-kubectl autoscale deploy pay -n mybnb --min=1 --max=3 --cpu-percent=15
+kubectl autoscale deploy hospitalmanage -n skcc-ns --min=1 --max=10 --cpu-percent=15
 
 # 적용 내용
-NAME                           READY   STATUS    RESTARTS   AGE
-pod/alarm-bc469c66b-nn7r9      2/2     Running   0          25m
-pod/booking-6f85b67876-rhwl2   2/2     Running   0          25m
-pod/gateway-7bd59945-g9hdq     2/2     Running   0          25m
-pod/html-78f648d5b-zhv2b       2/2     Running   0          25m
-pod/mypage-7587b7598b-l86jl    2/2     Running   0          25m
-pod/pay-755d679cbf-7l7dq       2/2     Running   0          8m58s
-pod/room-6c8cff5b96-78chb      2/2     Running   0          25m
-pod/siege                      2/2     Running   0          25m
+$kubectl get all -n skcc-ns
+NAME                        TYPE           CLUSTER-IP       EXTERNAL-IP                                                              PORT(S)          AGE
+service/gateway             LoadBalancer   10.100.95.162    a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com   8080:30387/TCP   19h
+service/hospitalmanage      ClusterIP      10.100.5.64      <none>                                                                   8080/TCP         19h
+service/mypage              ClusterIP      10.100.240.169   <none>                                                                   8080/TCP         19h
+service/reservationmanage   ClusterIP      10.100.232.233   <none>                                                                   8080/TCP         19h
+service/screeningmanage     ClusterIP      10.100.101.120   <none>                                                                   8080/TCP         19h
 
-NAME              TYPE           CLUSTER-IP       EXTERNAL-IP                                                                   PORT(S)          AGE
-service/alarm     ClusterIP      10.100.36.234    <none>                                                                        8080/TCP         25m
-service/booking   ClusterIP      10.100.19.222    <none>                                                                        8080/TCP         25m
-service/gateway   LoadBalancer   10.100.195.171   a59f2304940914b7ca3875b12e62e321-738700923.ap-northeast-2.elb.amazonaws.com   8080:31754/TCP   25m
-service/html      ClusterIP      10.100.19.81     <none>                                                                        8080/TCP         25m
-service/mypage    ClusterIP      10.100.134.37    <none>                                                                        8080/TCP         25m
-service/pay       ClusterIP      10.100.97.43     <none>                                                                        8080/TCP         8m58s
-service/room      ClusterIP      10.100.78.233    <none>                                                                        8080/TCP         25m
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/gateway             1/1     1            1           19h
+deployment.apps/hospitalmanage      1/1     1            1           11h
+deployment.apps/mypage              1/1     1            1           19h
+deployment.apps/reservationmanage   1/1     1            1           19h
+deployment.apps/screeningmanage     1/1     1            1           19h
 
-NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/alarm     1/1     1            1           25m
-deployment.apps/booking   1/1     1            1           25m
-deployment.apps/gateway   1/1     1            1           25m
-deployment.apps/html      1/1     1            1           25m
-deployment.apps/mypage    1/1     1            1           25m
-deployment.apps/pay       1/1     1            1           8m58s
-deployment.apps/room      1/1     1            1           25m
+NAME                                           DESIRED   CURRENT   READY   AGE
+replicaset.apps/gateway-5d58bbcb67             1         1         1       19h
+replicaset.apps/gateway-db44fcf75              0         0         0       19h
+replicaset.apps/hospitalmanage-8658bbbb6f      1         1         1       11h
+replicaset.apps/mypage-567c4b57ff              1         1         1       18h
+replicaset.apps/mypage-f5486756b               0         0         0       19h
+replicaset.apps/reservationmanage-6f47749879   0         0         0       18h
+replicaset.apps/reservationmanage-c96669994    1         1         1       18h
+replicaset.apps/reservationmanage-f74d47f65    0         0         0       19h
+replicaset.apps/screeningmanage-56ff67c8cf     0         0         0       18h
+replicaset.apps/screeningmanage-598b5f9767     0         0         0       17h
+replicaset.apps/screeningmanage-645c457774     0         0         0       19h
+replicaset.apps/screeningmanage-6485bb9857     0         0         0       17h
+replicaset.apps/screeningmanage-6865764467     0         0         0       19h
+replicaset.apps/screeningmanage-78984d5dc8     0         0         0       17h
+replicaset.apps/screeningmanage-9498f6bdc      1         1         1       17h
 
-NAME                                 DESIRED   CURRENT   READY   AGE
-replicaset.apps/alarm-bc469c66b      1         1         1       25m
-replicaset.apps/booking-6f85b67876   1         1         1       25m
-replicaset.apps/gateway-7bd59945     1         1         1       25m
-replicaset.apps/html-78f648d5b       1         1         1       25m
-replicaset.apps/mypage-7587b7598b    1         1         1       25m
-replicaset.apps/pay-755d679cbf       1         1         1       8m58s
-replicaset.apps/room-6c8cff5b96      1         1         1       25m
-
-NAME                                      REFERENCE        TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
-horizontalpodautoscaler.autoscaling/pay   Deployment/pay   <unknown>/15%   1         3         0          7s
-```
-
-- CB 에서 했던 방식대로 워크로드를 3분 동안 걸어준다.
-```
-$ siege -v -c100 -t180S -r10 --content-type "application/json" 'http://booking:8080/bookings POST {"roomId":1, "name":"호텔", "price":1000, "address":"서울", "host":"Superman", "guest":"배트맨", "usedate":"20201230"}'
+NAME                                                 REFERENCE                   TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/hospitalmanage   Deployment/hospitalmanage   2%/15%   1         10        0          7s
 
 ```
+
+- siege로 워크로드를 3분 동안 걸어준다.
+```
+$  siege -c100 -t60S -r10  -v http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+
+```
+
 - 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
 ```
-kubectl get deploy pay -n mybnb -w 
+kubectl get deploy hospitalmanage -n skcc-ns -w 
 ```
+
 - 어느정도 시간이 흐른 후 (약 30초) 스케일 아웃이 벌어지는 것을 확인할 수 있다:
 ```
-NAME   READY   UP-TO-DATE   AVAILABLE   AGE
-pay    1/1     1            1           4m21s
-pay    1/2     1            1           4m28s
-pay    1/2     1            1           4m28s
-pay    1/2     1            1           4m28s
-pay    1/2     2            1           4m28s
-pay    1/3     2            1           4m43s
-pay    1/3     2            1           4m43s
-pay    1/3     2            1           4m43s
-pay    1/3     3            1           4m43s
-pay    2/3     3            2           5m53s
-pay    3/3     3            3           5m59s
-:
+NAME             READY   UP-TO-DATE   AVAILABLE   AGE
+hospitalmanage   1/1     1            1           11h
+hospitalmanage   1/4     1            1           11h
+hospitalmanage   1/4     1            1           11h
+hospitalmanage   1/4     1            1           11h
+hospitalmanage   1/4     4            1           11h
+hospitalmanage   1/5     4            1           11h
+hospitalmanage   1/5     4            1           11h
+hospitalmanage   1/5     4            1           11h
+hospitalmanage   1/5     5            1           11h
+
 ```
-- siege 의 로그를 보아도 전체적인 성공률이 높아진 것을 확인 할 수 있다. 
+
+- kubectl get으로 autoscaling을 확인하면 CPU 사용률이 64%로 증가됐다.
+```
+$kubectl get horizontalpodautoscaler.autoscaling/hospitalmanage -n skcc-ns
+NAME                                                 REFERENCE                   TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/hospitalmanage   Deployment/hospitalmanage   64%/15%   1         10        5          2m54s
+```
+
+
+- siege 의 로그를 보면 Availability가 100%로 유지된 것을 확인 할 수 있다.  
 ```
 Lifting the server siege...
 Transactions:                  26446 hits

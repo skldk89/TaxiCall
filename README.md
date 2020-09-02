@@ -70,11 +70,11 @@
 
 ## Event Storming 결과
 
-![eventstorming](https://user-images.githubusercontent.com/67453893/91806738-06514f00-ec67-11ea-9226-a5cd28ec1163.png)
+![eventstorming](https://user-images.githubusercontent.com/67453893/91924624-2ee05400-ed0e-11ea-8221-b47b547f9dd9.png)
 
 ```
 # 도메인 서열
-- Core : screening
+- Core : Screening
 - Supporting : Hospital
 - General : Reservation
 ```
@@ -96,10 +96,10 @@
 
 | MSA | 기능 | port | 조회 API | Gateway 사용시 |
 |---|:---:|:---:|---|---|
-| Screening | 콘서트 관리 | 8081 | http://localhost:8081/screenings | http://ScreeningManage:8080/screenings |
-| Hospital | 예약 관리 | 8082 | http://localhost:8082/hospitals | http://HospitalManage:8080/hospitals |
-| Reservation | 결제 관리 | 8083 | http://localhost:8083/reservations | http://ReservationManage:8080/reservations |
-| MyPage | 사용자 관리 | 8084 | http://localhost:8084/myPages | http://MyPage:8080/myPages |
+| Screening | 검진 관리 | 8081 | http://localhost:8081/screenings | http://ScreeningManage:8080/screenings |
+| Hospital | 병원 관리 | 8082 | http://localhost:8082/hospitals | http://HospitalManage:8080/hospitals |
+| Reservation | 예약 관리 | 8083 | http://localhost:8083/reservations | http://ReservationManage:8080/reservations |
+| MyPage | my page | 8084 | http://localhost:8084/myPages | http://MyPage:8080/myPages |
 
 
 

@@ -56,6 +56,72 @@
     1. 고객은 본인의 예약 상태 및 이력 정보를 확인할 수 있다. > CQRS
 
 
+# 분석/설계
+
+## AS-IS 조직 (Horizontally-Aligned)
+  ![1](https://user-images.githubusercontent.com/67453893/91927140-baa8af00-ed13-11ea-8ead-0d4616a6da56.png)
+
+## TO-BE 조직 (Vertically-Aligned)
+  ![2](https://user-images.githubusercontent.com/67453893/91927149-bda39f80-ed13-11ea-90df-6a488d0d0210.png)
+
+## Event Storming 결과
+
+![eventstorming](https://user-images.githubusercontent.com/67453893/91924624-2ee05400-ed0e-11ea-8221-b47b547f9dd9.png)
+
+### 이벤트 도출
+![그림2](https://user-images.githubusercontent.com/67453893/91927264-065b5880-ed14-11ea-8c93-fe8b68396363.png)
+
+### 부적격 이벤트 탈락
+![그림3](https://user-images.githubusercontent.com/67453893/91927289-0f4c2a00-ed14-11ea-846b-1f7ae4d67378.png)
+
+    - 과정중 도출된 잘못된 도메인 이벤트들을 걸러내는 작업을 수행함
+
+### 액터, 커맨드 부착하여 읽기 좋게
+![그림4](https://user-images.githubusercontent.com/67453893/91927348-39055100-ed14-11ea-8711-a3cfa135d104.png)
+
+### 어그리게잇으로 묶기
+![그림5](https://user-images.githubusercontent.com/67453893/91927353-3acf1480-ed14-11ea-8aa2-da1ded8fd962.png)
+
+
+### 바운디드 컨텍스트로 묶기
+
+![그림6](https://user-images.githubusercontent.com/67453893/91927551-c648a580-ed14-11ea-99e8-63422e9a09c5.png)
+
+    - 도메인 서열 분리 
+        - Core Domain:  검진관리 : 없어서는 안될 핵심 서비스이며, 연견 Up-time SLA 수준을 99.999% 목표, 배포주기는  1주일 1회 미만
+        - Supporting Domain:   병원관리 : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 80% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
+        - General Domain:   예약관리 : 단순 이력을 관리하기 위한 서비스
+
+### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
+
+![그림7](https://user-images.githubusercontent.com/67453893/91927554-c6e13c00-ed14-11ea-96fa-99b7b8f40cfe.png)
+
+### 폴리시의 이동과 컨텍스트 매핑 (점선은 Pub/Sub, 실선은 Req/Resp)
+
+![그림8](https://user-images.githubusercontent.com/67453893/91927556-c779d280-ed14-11ea-8a3e-125d77f6b75d.png)
+
+```
+# 도메인 서열
+- Core : Screening
+- Supporting : Hospital
+- General : Reservation
+```
+
+### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
+![그림9](https://user-images.githubusercontent.com/67453893/91927779-525acd00-ed15-11ea-9ad8-4141fb72c470.png)
+![그림10](https://user-images.githubusercontent.com/67453893/91927763-4e2eaf80-ed15-11ea-9211-0389e6665436.png)
+![그림11](https://user-images.githubusercontent.com/67453893/91927770-4f5fdc80-ed15-11ea-8010-685f2fe7cc4e.png)
+![그림12](https://user-images.githubusercontent.com/67453893/91927777-50910980-ed15-11ea-8725-a20f855533f4.png)
+![그림13](https://user-images.githubusercontent.com/67453893/91927778-51c23680-ed15-11ea-83db-3b1a8a3fc4d7.png)
+
+## 헥사고날 아키텍처 다이어그램 도출
+
+* CQRS 를 위한 Mypage 서비스만 DB를 구분하여 적용
+![kafka](https://user-images.githubusercontent.com/67453893/91807070-1cf7a600-ec67-11ea-9e5e-f085f5904d5b.png)
+
+
+# 구현
+
 ## 시나리오 테스트결과
 
 | 기능 | 이벤트 Payload |
@@ -66,28 +132,6 @@
 | 9.관리자가 병원 정보를 삭제한다.</br>10.해당 병원에 예약한 예약자의 상태를 예약 강제 취소 변경한다. (Async)</br>11.예약관리의 해당 내역의 상태가 예약 강제 취소로 변경된다. | ![image](https://user-images.githubusercontent.com/25805562/91838119-f007bb00-ec87-11ea-9edd-38d9963f9ee0.png) | 
 | 12.건강검진 예약내역 상태를 조회한다.| ![image](https://user-images.githubusercontent.com/25805562/91838415-6ad0d600-ec88-11ea-9df8-1c6895fe6d75.png) |
 
-# 분석/설계
-
-## Event Storming 결과
-
-![eventstorming](https://user-images.githubusercontent.com/67453893/91924624-2ee05400-ed0e-11ea-8221-b47b547f9dd9.png)
-
-```
-# 도메인 서열
-- Core : Screening
-- Supporting : Hospital
-- General : Reservation
-```
-
-
-## 헥사고날 아키텍처 다이어그램 도출
-
-* CQRS 를 위한 Mypage 서비스만 DB를 구분하여 적용
-    
-![kafka](https://user-images.githubusercontent.com/67453893/91807070-1cf7a600-ec67-11ea-9e5e-f085f5904d5b.png)
-
-
-# 구현
 
 ## DDD 의 적용
 

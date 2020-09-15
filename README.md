@@ -115,7 +115,7 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 ## 헥사고날 아키텍처 다이어그램 도출
 
 * CQRS 를 위한 Mypage 서비스만 DB를 구분하여 적용
-![kafka](https://user-images.githubusercontent.com/67453893/91807070-1cf7a600-ec67-11ea-9e5e-f085f5904d5b.png)
+![#018](https://github.com/skldk89/TaxiCall/blob/master/Image/%23018.png)
 
 
 # 구현

@@ -110,7 +110,7 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 ![#012](https://github.com/skldk89/TaxiCall/blob/master/Image/%23012.png)
 ![#013](https://github.com/skldk89/TaxiCall/blob/master/Image/%23013.png)
 ![#014](https://github.com/skldk89/TaxiCall/blob/master/Image/%23014.png)
-![그림13](https://user-images.githubusercontent.com/67453893/91927778-51c23680-ed15-11ea-83db-3b1a8a3fc4d7.png)
+![#015](https://github.com/skldk89/TaxiCall/blob/master/Image/%23015.png)
 
 ## 헥사고날 아키텍처 다이어그램 도출
 

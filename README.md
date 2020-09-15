@@ -105,10 +105,10 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 ```
 
 ### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
-![그림9](https://user-images.githubusercontent.com/67453893/91927779-525acd00-ed15-11ea-9ad8-4141fb72c470.png)
-![그림10](https://user-images.githubusercontent.com/67453893/91927763-4e2eaf80-ed15-11ea-9211-0389e6665436.png)
-![그림11](https://user-images.githubusercontent.com/67453893/91927770-4f5fdc80-ed15-11ea-8010-685f2fe7cc4e.png)
-![그림12](https://user-images.githubusercontent.com/67453893/91927777-50910980-ed15-11ea-8725-a20f855533f4.png)
+![#011](https://github.com/skldk89/TaxiCall/blob/master/Image/%23011.png)
+![#012](https://github.com/skldk89/TaxiCall/blob/master/Image/%23012.png)
+![#013](https://github.com/skldk89/TaxiCall/blob/master/Image/%23013.png)
+![#014](https://github.com/skldk89/TaxiCall/blob/master/Image/%23014.png)
 ![그림13](https://user-images.githubusercontent.com/67453893/91927778-51c23680-ed15-11ea-83db-3b1a8a3fc4d7.png)
 
 ## 헥사고날 아키텍처 다이어그램 도출

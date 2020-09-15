@@ -60,7 +60,7 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
   ![1](https://user-images.githubusercontent.com/67453893/91927140-baa8af00-ed13-11ea-8ead-0d4616a6da56.png)
 
 ## TO-BE 조직 (Vertically-Aligned)
-  ![2](https://user-images.githubusercontent.com/67453893/91927149-bda39f80-ed13-11ea-90df-6a488d0d0210.png)
+  ![#017](https://github.com/skldk89/TaxiCall/blob/master/Image/%23017.png)
 
 ## Event Storming 결과
 

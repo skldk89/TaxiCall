@@ -66,7 +66,7 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 ![eventstorming](https://user-images.githubusercontent.com/67453893/91924624-2ee05400-ed0e-11ea-8221-b47b547f9dd9.png)
 
 ### 이벤트 도출
-![#001](./image/#001.png)
+![#001](https://github.com/skldk89/TaxiCall/blob/master/Image/%23001.png)
 
 ### 부적격 이벤트 탈락
 ![그림3](https://user-images.githubusercontent.com/67453893/91927289-0f4c2a00-ed14-11ea-846b-1f7ae4d67378.png)

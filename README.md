@@ -45,7 +45,6 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 
 ## 비기능적 요구사항
 1. 트랜잭션
-    1. 고객의 예약에 따라서 해당 날짜 / 병원의 검진가능 인원이 감소한다. > Sync
     1. 고객의 예약을 기사가 수락/거절 가능하다. > Sync
     1. 고객의 취소에 따라서 요청 예약의 상태가 변경된다. > Async
 1. 장애격리
@@ -115,7 +114,7 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 
 ## 헥사고날 아키텍처 다이어그램 도출
 
-* CQRS 를 위한 Mypage 서비스만 DB를 구분하여 적용
+* CQRS 를 위한 orderStatus 서비스만 DB를 구분하여 적용
 ![#018](https://github.com/skldk89/TaxiCall/blob/master/Image/%23018.png)
 
 
@@ -257,7 +256,7 @@ public interface DriverService {
 
 #고객호출요청
 http POST localhost:8081/orders driverId=1 customerName="customer1" location="seoul1" status="Ordered"   #Fail
-http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="Ordered"   #Fail
+http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="OrderCanceled"   #Fail
 
 #상태 관리 재기동
 cd Management
@@ -265,7 +264,7 @@ mvn spring-boot:run
 
 #고객검진요청 처리
 http POST localhost:8081/orders driverId=1 customerName="customer1" location="seoul1" status="Ordered"   #Success
-http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="Ordered"   #Success
+http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="OrderCanceled"   #Success
 ```
 
 - 또한 과도한 요청시에 서비스 장애가 도미노 처럼 벌어질 수 있다. (서킷브레이커, Fallback 처리는 운영단계에서 설명한다.)
@@ -281,70 +280,88 @@ http POST localhost:8081/orders driverId=2 customerName="customer2" location="se
 - 이를 위하여 고객호출신청 상태관리에 기록을 남긴 후에 곧바로 호출취소신청 되었다는 되었다는 도메인 이벤트를 카프카로 송출한다(Publish)
  
 ```
-package local;
-
 @Entity
-@Table(name="Screening_table")
-public class Screening {
+@Table(name="Management_table")
+public class Management {
 
- ...
-    @PostUpdate
-    public void onPostUpdate(){
+    @PostPersist
+    public void onPostPersist(){
+        System.out.println("## seq 0 :  "+this.getStatus());
+        System.out.println("## seq 1 ");
 
-        System.out.println("#### onPostUpdate :" + this.toString());
+        if(this.getStatus().equals("Ordered")) {
+            TaxiCall.external.Driver driver = new TaxiCall.external.Driver();
+            driver.setStatus("Ordered");
+            driver.setDriverId(this.getDriverId());
+            driver.setOrderId(this.getOrderId());
+            driver.setLocation(this.getLocation());
 
-        if("CANCELED".equals(this.getStatus())) {
-            Canceled canceled = new Canceled();
-            BeanUtils.copyProperties(this, canceled);
-            canceled.publishAfterCommit();
+            System.out.println(this.getDriverId() + "TEST 1 : " + this.getOrderId());
+
+            ManagementApplication.applicationContext.getBean(TaxiCall.external.DriverService.class)
+                    .checkOrder(driver);
+
+            System.out.println("AAAA");
         }
-	}
-}
+        else if(this.getStatus().equals("OrderCanceled")) {
+            CancelOrderRequested cancelOrderRequested = new CancelOrderRequested();
+
+            cancelOrderRequested.setOrderId(this.getOrderId());
+            cancelOrderRequested.setStatus(this.getStatus());
+            cancelOrderRequested.setDriverId(this.getDriverId());
+
+            BeanUtils.copyProperties(this, cancelOrderRequested);
+            cancelOrderRequested.publishAfterCommit();
+        }
+    }
 ```
-- 예약관리 서비스에서는 검진취소신청 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다
+- 상태관리 서비스에서는 호출취소신청 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다
 
 ```
-package local;
-
-...
-
 @Service
 public class PolicyHandler{
-
     @StreamListener(KafkaProcessor.INPUT)
-    public void wheneverCanceled_ReservationCancel(@Payload Canceled canceled){
+    public void onStringEventListener(@Payload String eventString){
 
-        if(canceled.isMe()){
-            //  검진예약 취소로 인한 취소
-            Reservation temp = reservationRepository.findByScreeningId(canceled.getId());
-            temp.setStatus("CANCELED");
-            reservationRepository.save(temp);
+    }
+    @Autowired
+    DriverRepository driverRepository;
+    @StreamListener(KafkaProcessor.INPUT)
+    public void wheneverCancelOrderRequested_ReceiveCancelOrder(@Payload CancelOrderRequested cancelOrderRequested){
+
+        if(cancelOrderRequested.isMe()){
+            System.out.println("##### listener ReceiveCancelOrder : " + cancelOrderRequested.toJson());
+
+            Driver driver = new Driver();
+            driverRepository.findById(Long.valueOf(cancelOrderRequested.getOrderId())).ifPresent((Driver)->{
+                Driver.setDriverId(cancelOrderRequested.getDriverId());
+                Driver.setStatus("OrderCanceled");
+                driverRepository.save(Driver);
+            });
 
         }
     }
 
 }
-
 ```
 
-예약관리 시스템은 병원/검진신청과 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 예약관리시스템이 유지보수로 인해 잠시 내려간 상태라도 예약신청을 받는데 문제가 없다.
+기사관리 시스템은 Taxi 호출과 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 기사 관리시스템이 유지보수로 인해 잠시 내려간 상태라도 호출 신청을 받는데 문제가 없다.
 
 ```
-#예약관리 서비스 (Reservation) 를 잠시 내려놓음 (ctrl+c)
+#기사관리 서비스 (Driver) 를 잠시 내려놓음 (ctrl+c)
 
 #검진신청취소처리
-http PUT localhost:8081/screenings hospitalId=1 hospitalNm="Samsung" chkDate= "20200907" custNm= "Moon44" status= "Canceled"   #Success
-http PUT localhost:8081/screenings hospitalId=2 hospitalNm="SK" chkDate= "20200908" custNm= "YOU" status= "Canceled"   #Success
+http PATCH localhost:8081/screenings driverId=1 status= "OrderCanceled"   #Success
 
 #예약관리상태 확인
-http localhost:8083/reservations     # 예약상태 안바뀜 확인
+http localhost:8083/drivers     # 예약상태 안바뀜 확인
 
 #예약관리 서비스 기동
-cd ReservationManage
+cd Driver
 mvn spring-boot:run
 
 #예약관리상태 확인
-http localhost:8083/reservations     # 예약상태가 "취소됨"으로 확인
+http localhost:8083/drivers     # 예약상태가 "취소됨"으로 확인
 ```
 
 # 운영

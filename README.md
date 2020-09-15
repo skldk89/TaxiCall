@@ -41,6 +41,7 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 1. 고객이 Taxi 호출 예약을 취소한다.(Async)
 1. 고객의 예약 취소에 따라서 Management 내역의 상태가 예약 취소로 변경된다.
 1. Driver에게 예약취소 되었음을 공유 한다.(Async)
+1. 호출된 현황을 조회한다.
 
 ## 비기능적 요구사항
 1. 트랜잭션
@@ -124,11 +125,10 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 
 | 기능 | 이벤트 Payload |
 |---|:---:|
-| 1.관리자가 병원 정보( 병원이름, 예약일, 가능인원수)를 등록한다. |![image](https://user-images.githubusercontent.com/25805562/91837451-3577b880-ec87-11ea-88b1-dc4e9d74790d.png)|
-| 2.고객이 건강검진을 예약을 요청한다. </br>3.해당 병원의 검진가능 인원이 감소한다. (Sync)</br>4.예약 완료로 변경된다. (Async)</br>5.예약관리의 해당 내역의 상태가 등록된다. |![image](https://user-images.githubusercontent.com/25805562/91837806-7a035400-ec87-11ea-8966-09403bd5e7eb.png)|
-| 6.고객이 건강검진 예약을 취소한다.</br>7.취소 시, 병원의 검진가능 인원이 증가한다. (Async)</br>8.예약관리의 해당 내역의 상태가 예약 취소로 변경된다. | ![image](https://user-images.githubusercontent.com/25805562/91837990-c2227680-ec87-11ea-9fb1-530410922532.png) |
-| 9.관리자가 병원 정보를 삭제한다.</br>10.해당 병원에 예약한 예약자의 상태를 예약 강제 취소 변경한다. (Async)</br>11.예약관리의 해당 내역의 상태가 예약 강제 취소로 변경된다. | ![image](https://user-images.githubusercontent.com/25805562/91838119-f007bb00-ec87-11ea-9edd-38d9963f9ee0.png) | 
-| 12.건강검진 예약내역 상태를 조회한다.| ![image](https://user-images.githubusercontent.com/25805562/91838415-6ad0d600-ec88-11ea-9df8-1c6895fe6d75.png) |
+| 1. 고객이 택시를 호출(장소, 고객명)한다. |![image](https://user-images.githubusercontent.com/25805562/91837451-3577b880-ec87-11ea-88b1-dc4e9d74790d.png)|
+| 2. Management 에서 호출을 받아서 택시 기사에서 체크할 것을 요청한다.(Sync)</br>3. 택시 기사는 받은 호출을 수락하거나 거절한다.(Async)</br>4. Management에서 변경사항을 접수 받는다.</br>5. 호출 수락 시 고객에게 호출되었음을 공유한다.(Async)</br>6. 호출 거절 시 고객에게 호출 거절되었음을 공유한다.(Async) |![image](https://user-images.githubusercontent.com/25805562/91837806-7a035400-ec87-11ea-8966-09403bd5e7eb.png)|
+| 7. 고객이 Taxi 호출 예약을 취소한다.(Async)</br>8. 고객의 예약 취소에 따라서 Management 내역의 상태가 예약 취소로 변경된다.</br>9. Driver에게 예약취소 되었음을 공유 한다.(Async) | ![image](https://user-images.githubusercontent.com/25805562/91837990-c2227680-ec87-11ea-9fb1-530410922532.png) |
+| 10. 호출된 현황을 조회한다.| ![image](https://user-images.githubusercontent.com/25805562/91838415-6ad0d600-ec88-11ea-9df8-1c6895fe6d75.png) |
 
 
 ## DDD 의 적용

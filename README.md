@@ -259,7 +259,7 @@ public interface DriverService {
 http POST localhost:8081/orders driverId=1 customerName="customer1" location="seoul1" status="Ordered"   #Fail
 http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="Ordered"   #Fail
 
-#병원정보관리 재기동
+#상태 관리 재기동
 cd Management
 mvn spring-boot:run
 

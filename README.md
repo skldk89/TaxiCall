@@ -1,6 +1,6 @@
-# 4th-team3-health-screening
+# 6th-teamA-Taxi-Call
 
-# screeningReservation (건강검진 예약 서비스)
+# screeningReservation (택시 호출 서비스)
 
 # repo
  1. 병원관리 : https://github.com/byounghoonmoon/HospitalManage.git

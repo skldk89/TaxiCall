@@ -39,7 +39,7 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 1. 호출 수락 시 고객에게 호출되었음을 공유한다.(Async)
 1. 호출 거절 시 고객에게 호출 거절되었음을 공유한다.(Async)
 1. 고객이 Taxi 호출 예약을 취소한다.(Async)
-1. 고객의 예약 취소에 따라서 Management의 해당 내역의 상태가 예약 취소로 변경된다.
+1. 고객의 예약 취소에 따라서 Management 내역의 상태가 예약 취소로 변경된다.
 1. Driver에게 예약취소 되었음을 공유 한다.(Async)
 
 ## 비기능적 요구사항
@@ -63,7 +63,7 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 
 ## Event Storming 결과
 
-![eventstorming](https://user-images.githubusercontent.com/67453893/91924624-2ee05400-ed0e-11ea-8221-b47b547f9dd9.png)
+![#000](https://github.com/skldk89/TaxiCall/blob/master/Image/%23000.png)
 
 ### 이벤트 도출
 ![#001](https://github.com/skldk89/TaxiCall/blob/master/Image/%23001.png)

@@ -195,39 +195,58 @@ pom.xml 에 적용
 
 ## 동기식 호출 과 Fallback 처리
 
-분석단계에서의 조건 중 하나로 고객검진요청(Screening)->병원정보관리(Hospital) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 
-고객검진요청 > 병원정보관리 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리
+분석단계에서의 조건 중 하나로 고객 호출(Order) 이후 상태 관리(Management)->기사 관리(Driver) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 
+Order 상태 관리 > 기사 관리 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리
 - FeignClient 서비스 구현
 
 ```
-# HospitalService.java
+# DriverService.java
 
-@FeignClient(name="HospitalManage", url="${api.hospital.url}")
-public interface HospitalService {
+@FeignClient(name="Driver", url= "${api.url.driver}")
+public interface DriverService {
 
-    @RequestMapping(method= RequestMethod.PUT, value="/hospitals/{hospitalId}", consumes = "application/json")
-    public void screeningRequest(@PathVariable("hospitalId") Long hospitalId, @RequestBody Hospital hospital);
+    @RequestMapping(method= RequestMethod.GET, path="/drivers/check")
+    public void checkOrder(@RequestBody Driver param);
 
 }
 ```
 
-- 고객검진요청을 받은 직후(@PostPersist) 병원벙보를 요청하도록 처리
+- Order 호출을 받은 직후(@PostPersist) Management에서 요청하도록 처리
 ```
-# Screening.java (Entity)
-
+# Management.java (Entity)
+    
     @PostPersist
-    public void onPostPersist(){;
+    public void onPostPersist(){
+        System.out.println("## seq 0 :  "+this.getStatus());
+        System.out.println("## seq 1 ");
 
-        // 검진 요청함 ( Req / Res : 동기 방식 호출)
-        local.external.Hospital hospital = new local.external.Hospital();
-        hospital.setHospitalId(getHospitalId());
-        ScreeningManageApplication.applicationContext.getBean(local.external.HospitalService.class)
-            .screeningRequest(hospital.getHospitalId(),hospital);
+        if(this.getStatus().equals("Ordered")) {
+            TaxiCall.external.Driver driver = new TaxiCall.external.Driver();
+            driver.setStatus("Ordered");
+            driver.setDriverId(this.getDriverId());
+            driver.setOrderId(this.getOrderId());
+            driver.setLocation(this.getLocation());
 
-        Requested requested = new Requested();
-        BeanUtils.copyProperties(this, requested);
-        requested.publishAfterCommit();
+            System.out.println(this.getDriverId() + "TEST 1 : " + this.getOrderId());
+
+            ManagementApplication.applicationContext.getBean(TaxiCall.external.DriverService.class)
+                    .checkOrder(driver);
+
+            System.out.println("AAAA");
+        }
+
+        else if(this.getStatus().equals("OrderCanceled")) {
+            CancelOrderRequested cancelOrderRequested = new CancelOrderRequested();
+
+            cancelOrderRequested.setOrderId(this.getOrderId());
+            cancelOrderRequested.setStatus(this.getStatus());
+            cancelOrderRequested.setDriverId(this.getDriverId());
+
+            BeanUtils.copyProperties(this, cancelOrderRequested);
+            cancelOrderRequested.publishAfterCommit();
+        }
     }
+    
 ```
 
 - 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 병원관리 시스템이 장애가 나면 검진요청 못받는다는 것을 확인

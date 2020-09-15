@@ -1,6 +1,6 @@
 # 5th-teamA-Taxi-Call
 
-# screeningReservation (택시 호출 서비스)
+# TaxiCall (택시 호출 서비스)
 
 # repo
  1. 호출관리 : https://github.com/rladutp/order.git

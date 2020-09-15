@@ -45,9 +45,10 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 ## 비기능적 요구사항
 1. 트랜잭션
     1. 고객의 예약에 따라서 해당 날짜 / 병원의 검진가능 인원이 감소한다. > Sync
-    1. 고객의 취소에 따라서 해당 날짜 / 병원의 검진가능 인원이 증가한다. > Async
+    1. 고객의 예약을 기사가 수락/거절 가능하다. > Sync
+    1. 고객의 취소에 따라서 요청 예약의 상태가 변경된다. > Async
 1. 장애격리
-    1. 예약 관리 서비스에 장애가 발생하더라도 검진 예약은 정상적으로 처리 가능하다.  > Async (event-driven)
+    1. 기사 관리 서비스에 장애가 발생하더라도 고객 예약은 정상적으로 처리 가능하다.  > Async (event-driven)
     1. 서킷 브레이킹 프레임워크 > istio-injection + DestinationRule
 1. 성능
     1. 고객은 본인의 예약 상태 및 이력 정보를 확인할 수 있다. > CQRS
@@ -85,9 +86,9 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 ![#005](https://github.com/skldk89/TaxiCall/blob/master/Image/%23005.png)
 
     - 도메인 서열 분리 
-        - Core Domain:  검진관리 : 없어서는 안될 핵심 서비스이며, 연견 Up-time SLA 수준을 99.999% 목표, 배포주기는  1주일 1회 미만
-        - Supporting Domain:   병원관리 : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 80% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
-        - General Domain:   예약관리 : 단순 이력을 관리하기 위한 서비스
+        - Core Domain:  Management : 없어서는 안될 핵심 서비스이며, 연결 Up-time SLA 수준을 99.999% 목표, 배포주기는  1주일 1회 미만
+        - Supporting Domain:   Order : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 80% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
+        - General Domain:   Driver : Order의 상태를 수신하고, 요청에 대한 승인/거절을 진행하는 서비스이며, SLA 수준은 연간 80% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함. 
 
 ### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
 
@@ -99,9 +100,9 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 
 ```
 # 도메인 서열
-- Core : Screening
-- Supporting : Hospital
-- General : Reservation
+- Core : Management
+- Supporting : Order
+- General : Driver
 ```
 
 ### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증

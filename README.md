@@ -69,20 +69,20 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 ![#001](https://github.com/skldk89/TaxiCall/blob/master/Image/%23001.png)
 
 ### 부적격 이벤트 탈락
-![그림3](https://user-images.githubusercontent.com/67453893/91927289-0f4c2a00-ed14-11ea-846b-1f7ae4d67378.png)
+![#002](https://github.com/skldk89/TaxiCall/blob/master/Image/%23002.png)
 
     - 과정중 도출된 잘못된 도메인 이벤트들을 걸러내는 작업을 수행함
 
 ### 액터, 커맨드 부착하여 읽기 좋게
-![그림4](https://user-images.githubusercontent.com/67453893/91927348-39055100-ed14-11ea-8711-a3cfa135d104.png)
+![#003](https://github.com/skldk89/TaxiCall/blob/master/Image/%23003.png)
 
 ### 어그리게잇으로 묶기
-![그림5](https://user-images.githubusercontent.com/67453893/91927353-3acf1480-ed14-11ea-8aa2-da1ded8fd962.png)
+![#004](https://github.com/skldk89/TaxiCall/blob/master/Image/%23004.png)
 
 
 ### 바운디드 컨텍스트로 묶기
 
-![그림6](https://user-images.githubusercontent.com/67453893/91927551-c648a580-ed14-11ea-99e8-63422e9a09c5.png)
+![#005](https://github.com/skldk89/TaxiCall/blob/master/Image/%23005.png)
 
     - 도메인 서열 분리 
         - Core Domain:  검진관리 : 없어서는 안될 핵심 서비스이며, 연견 Up-time SLA 수준을 99.999% 목표, 배포주기는  1주일 1회 미만

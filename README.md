@@ -3,8 +3,8 @@
 # screeningReservation (택시 호출 서비스)
 
 # repo
- 1. 고객호출 : https://github.com/rladutp/order.git
- 1. 호출관리 : https://github.com/rladutp/management.git
+ 1. 호출관리 : https://github.com/rladutp/order.git
+ 1. 상태관리 : https://github.com/rladutp/management.git
  1. 기사관리 : https://github.com/rladutp/driver.git
  1. 예약관리 : https://github.com/rladutp/orderStatus.git
  1. 게이트웨이 : https://github.com/rladutp/gateway.git
@@ -195,8 +195,8 @@ pom.xml 에 적용
 
 ## 동기식 호출 과 Fallback 처리
 
-분석단계에서의 조건 중 하나로 고객 호출(Order) 이후 상태 관리(Management)->기사 관리(Driver) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 
-Order 상태 관리 > 기사 관리 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리
+분석단계에서의 조건 중 하나로 고객 호출(Order) -> 상태 관리(Management) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 
+Order 상태 관리 > 상태 관리 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리
 - FeignClient 서비스 구현
 
 ```
@@ -249,23 +249,23 @@ public interface DriverService {
     
 ```
 
-- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 병원관리 시스템이 장애가 나면 검진요청 못받는다는 것을 확인
+- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 상태 관리 시스템이 장애가 나면 호출요청을 못 받는다는 것을 확인
 
 
 ```
-#병원정보관리(Hospital) 서비스를 잠시 내려놓음 (ctrl+c)
+#상태 관리(Management) 서비스를 잠시 내려놓음 (ctrl+c)
 
-#고객검진요청
-http POST localhost:8081/screenings hospitalId=1 hospitalNm="Samsung" custNm="MOON" chkDate="20200910" status="REQUESTED"   #Fail
-http POST localhost:8081/screenings hospitalId=2 hospitalNm="SK" custNm="JUNG" chkDate="20200911" status="REQUESTED"   #Fail
+#고객호출요청
+http POST localhost:8081/orders driverId=1 customerName="customer1" location="seoul1" status="Ordered"   #Fail
+http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="Ordered"   #Fail
 
 #병원정보관리 재기동
-cd HospitalManage
+cd Management
 mvn spring-boot:run
 
 #고객검진요청 처리
-http POST localhost:8081/screenings hospitalId=1 hospitalNm="Samsung" custNm="MOON" chkDate="20200910" status="REQUESTED"   #Success
-http POST localhost:8081/screenings hospitalId=2 hospitalNm="SK" custNm="JUNG" chkDate="20200911" status="REQUESTED"   #Success
+http POST localhost:8081/orders driverId=1 customerName="customer1" location="seoul1" status="Ordered"   #Success
+http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="Ordered"   #Success
 ```
 
 - 또한 과도한 요청시에 서비스 장애가 도미노 처럼 벌어질 수 있다. (서킷브레이커, Fallback 처리는 운영단계에서 설명한다.)
@@ -276,9 +276,9 @@ http POST localhost:8081/screenings hospitalId=2 hospitalNm="SK" custNm="JUNG" c
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
 
-고객검진취소가 이루어진 후에 예약시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하였다.
+고객호출취소가 이루어진 후에 예약시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하였다.
  
-- 이를 위하여 고객검진신청이력에 기록을 남긴 후에 곧바로 검진취소신청 되었다는 되었다는 도메인 이벤트를 카프카로 송출한다(Publish)
+- 이를 위하여 고객호출신청 상태관리에 기록을 남긴 후에 곧바로 호출취소신청 되었다는 되었다는 도메인 이벤트를 카프카로 송출한다(Publish)
  
 ```
 package local;

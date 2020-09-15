@@ -356,7 +356,7 @@ pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 �
 - CodeBuild 기반으로 CI/CD 파이프라인 구성
 MSA 서비스별 CodeBuild 프로젝트 생성하여  CI/CD 파이프라인 구성
 
-<img src="https://user-images.githubusercontent.com/67447253/91837032-92bf3a00-ec86-11ea-96e6-263a590cd849.JPG"/>
+![#019](https://github.com/skldk89/TaxiCall/blob/master/Image/%23019.png)
 
 - Git Hook 연결
 연결한 Github의 소스 변경 발생 시 자동으로 빌드 및 배포 되도록 Git Hook 연결 설정

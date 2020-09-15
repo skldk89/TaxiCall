@@ -350,7 +350,7 @@ public class PolicyHandler{
 ```
 #기사관리 서비스 (Driver) 를 잠시 내려놓음 (ctrl+c)
 
-#검진신청취소처리
+#호출취소처리
 http PATCH localhost:8081/screenings driverId=1 status= "OrderCanceled"   #Success
 
 #예약관리상태 확인

@@ -3,13 +3,13 @@
 # screeningReservation (택시 호출 서비스)
 
 # repo
- 1. 병원관리 : https://github.com/byounghoonmoon/HospitalManage.git
- 1. 검진관리 : https://github.com/byounghoonmoon/ScreeningManage.git
- 1. 예약관리 : https://github.com/byounghoonmoon/ReservationManage.git
- 1. 마이페이지 : https://github.com/byounghoonmoon/MyPage.git
- 1. 게이트웨이 : https://github.com/byounghoonmoon/gateway.git
+ 1. 고객호출 : https://github.com/rladutp/order.git
+ 1. 호출관리 : https://github.com/rladutp/management.git
+ 1. 기사관리 : https://github.com/rladutp/driver.git
+ 1. 예약관리 : https://github.com/rladutp/orderStatus.git
+ 1. 게이트웨이 : https://github.com/rladutp/gateway.git
 
-3조 건강검진 예약 서비스 CNA개발 실습을 위한 프로젝트
+A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 
 # Table of contents
 

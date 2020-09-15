@@ -138,11 +138,10 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 
 | MSA | 기능 | port | 조회 API | Gateway 사용시 |
 |---|:---:|:---:|---|---|
-| Screening | 검진 관리 | 8081 | http://localhost:8081/screenings | http://ScreeningManage:8080/screenings |
-| Hospital | 병원 관리 | 8082 | http://localhost:8082/hospitals | http://HospitalManage:8080/hospitals |
-| Reservation | 예약 관리 | 8083 | http://localhost:8083/reservations | http://ReservationManage:8080/reservations |
-| MyPage | my page | 8084 | http://localhost:8084/myPages | http://MyPage:8080/myPages |
-
+| Order | 호출 관리 | 8081 | http://localhost:8081/orders | http://Order:8080/orders |
+| Management | 상태 관리 | 8082 | http://localhost:8082/managements | http://Management:8080/managements |
+| Driver | 기사 관리 | 8083 | http://localhost:8083/drivers | http://Driver:8080/drivers |
+| OrderStatus | 예약 관리 | 8084 | http://localhost:8084/orderStatuses | http://OrderStatus:8080/orderStatuses |
 
 
 ## Gateway 적용
@@ -153,22 +152,22 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: ScreeningManage
-          uri: http://ScreeningManage:8080
+        - id: Order
+          uri: http://Order:8080
           predicates:
-            - Path=/screenings/**
-        - id: HospitalManage
-          uri: http://HospitalManage:8080
+            - Path=/orders/** 
+        - id: Management
+          uri: http://Management:8080
           predicates:
-            - Path=/hospitals/** 
-        - id: ReservationManage
-          uri: http://ReservationManage:8080
+            - Path=/managements/** 
+        - id: Driver
+          uri: http://Driver:8080
           predicates:
-            - Path=/reservations/** 
-        - id: MyPage
-          uri: http://MyPage:8080
+            - Path=/drivers/** 
+        - id: orderStatus
+          uri: http://orderStatus:8080
           predicates:
-            - Path= /myPages/**
+            - Path= /orderStatuses/**
 ```
 
 

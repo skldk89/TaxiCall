@@ -256,7 +256,7 @@ public interface DriverService {
 
 #고객호출요청
 http POST localhost:8081/orders driverId=1 customerName="customer1" location="seoul1" status="Ordered"   #Fail
-http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="OrderCanceled"   #Fail
+http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="Ordered"   #Fail
 
 #상태 관리 재기동
 cd Management
@@ -264,7 +264,7 @@ mvn spring-boot:run
 
 #고객검진요청 처리
 http POST localhost:8081/orders driverId=1 customerName="customer1" location="seoul1" status="Ordered"   #Success
-http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="OrderCanceled"   #Success
+http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="Ordered"   #Success
 ```
 
 - 또한 과도한 요청시에 서비스 장애가 도미노 처럼 벌어질 수 있다. (서킷브레이커, Fallback 처리는 운영단계에서 설명한다.)
@@ -378,7 +378,7 @@ MSA 서비스별 CodeBuild 프로젝트 생성하여  CI/CD 파이프라인 구�
 - Git Hook 연결
 연결한 Github의 소스 변경 발생 시 자동으로 빌드 및 배포 되도록 Git Hook 연결 설정
 
-<img src="https://user-images.githubusercontent.com/67447253/91837300-0103fc80-ec87-11ea-9698-fc1afb52893c.JPG" />
+![#020](https://github.com/skldk89/TaxiCall/blob/master/Image/%23020.png)
 
 
 ## 동기식 호출 / 서킷 브레이킹 / 장애격리

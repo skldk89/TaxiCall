@@ -91,11 +91,11 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 
 ### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
 
-![그림7](https://user-images.githubusercontent.com/67453893/91927554-c6e13c00-ed14-11ea-96fa-99b7b8f40cfe.png)
+![#006](https://github.com/skldk89/TaxiCall/blob/master/Image/%23006.png)
 
 ### 폴리시의 이동과 컨텍스트 매핑 (점선은 Pub/Sub, 실선은 Req/Resp)
 
-![그림8](https://user-images.githubusercontent.com/67453893/91927556-c779d280-ed14-11ea-8a3e-125d77f6b75d.png)
+![#007](https://github.com/skldk89/TaxiCall/blob/master/Image/%23007.png)
 
 ```
 # 도메인 서열

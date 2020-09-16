@@ -85,11 +85,10 @@
 
 | MSA | 기능 | port | 조회 API | Gateway 사용시 |
 |---|:---:|:---:|---|---|
-| Order | 호출 관리 | 8081 | http://localhost:8081/orders | http://Order:8080/orders |
-| Management | 상태 관리 | 8082 | http://localhost:8082/managements | http://Management:8080/managements |
-| Driver | 기사 관리 | 8083 | http://localhost:8083/drivers | http://Driver:8080/drivers |
-| OrderStatus | 예약 관리 | 8084 | http://localhost:8084/orderStatuses | http://OrderStatus:8080/orderStatuses |
-
+| Reservation | 예약 관리 | 8081 | http://localhost:8081/reservations | http://Reservation:8080/reservations |
+| Management | 상태 관리 | 8083 | http://localhost:8083/managements | http://Management:8080/managements |
+| Owner | 식당 관리 | 8082 | http://localhost:8082/owners | http://Owner:8080/owners |
+| OrderStatus | 현황 관리 | 8084 | http://localhost:8084/reservationStatuses | http://ReservationStatus:8080/reservationStatuses |
 
 ## Gateway 적용
 
@@ -99,28 +98,28 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: Order
-          uri: http://Order:8080
+        - id: reservation
+          uri: http://reservation:8080
           predicates:
-            - Path=/orders/** 
-        - id: Management
-          uri: http://Management:8080
+            - Path=/reservations/** 
+        - id: owner
+          uri: http://owner:8080
+          predicates:
+            - Path=/owners/** 
+        - id: management
+          uri: http://management:8080
           predicates:
             - Path=/managements/** 
-        - id: Driver
-          uri: http://Driver:8080
+        - id: reservationstatus
+          uri: http://reservationstatus:8080
           predicates:
-            - Path=/drivers/** 
-        - id: orderStatus
-          uri: http://orderStatus:8080
-          predicates:
-            - Path= /orderStatuses/**
+            - Path= /reservationStatuses/**
 ```
 
 
 ## 폴리글랏 퍼시스턴스
 
-CQRS 를 위한 orderStatus 서비스만 DB를 구분하여 적용함. 인메모리 DB인 hsqldb 사용.
+CQRS 를 위한 reservationStatus 서비스만 DB를 구분하여 적용함. 인메모리 DB인 hsqldb 사용.
 
 ```
 pom.xml 에 적용
@@ -142,55 +141,45 @@ pom.xml 에 적용
 
 ## 동기식 호출 과 Fallback 처리
 
-분석단계에서의 조건 중 하나로 고객 호출(Order) -> 상태 관리(Management) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 
-Order 상태 관리 > 상태 관리 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리
+분석단계에서의 조건 중 하나로 고객 예약(Reservation) -> 상태 관리(Management) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 
+Reservation 상태 관리 > 상태 관리 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리
 - FeignClient 서비스 구현
 
 ```
-# DriverService.java
+# OwnerService.java
 
-@FeignClient(name="Driver", url= "${api.url.driver}")
-public interface DriverService {
+@FeignClient(name="Owner", url="http://Owner:8080")
+public interface OwnerService {
 
-    @RequestMapping(method= RequestMethod.GET, path="/drivers/check")
-    public void checkOrder(@RequestBody Driver param);
+    @RequestMapping(method= RequestMethod.GET, path="/owners")
+    public void checkReservation(@RequestBody Owner owner);
 
 }
 ```
 
-- Order 호출을 받은 직후(@PostPersist) Management에서 요청하도록 처리
+- Reservation 예약을 받은 직후(@PostPersist) Management에서 요청하도록 처리
 ```
 # Management.java (Entity)
     
     @PostPersist
     public void onPostPersist(){
-        System.out.println("## seq 0 :  "+this.getStatus());
+        System.out.println("## seq 0 ");
         System.out.println("## seq 1 ");
 
-        if(this.getStatus().equals("Ordered")) {
-            TaxiCall.external.Driver driver = new TaxiCall.external.Driver();
-            driver.setStatus("Ordered");
-            driver.setDriverId(this.getDriverId());
-            driver.setOrderId(this.getOrderId());
-            driver.setLocation(this.getLocation());
+        if(this.getStatus().equals("RequestedReservation")) {
+            RestaurantReservation.external.Owner owner = new RestaurantReservation.external.Owner();
 
-            System.out.println(this.getDriverId() + "TEST 1 : " + this.getOrderId());
+            owner.setStatus("Requested");
+            owner.setOwnerId(this.getOwnerId());
+            owner.setReservationId(this.getReservationId());
+            owner.setReservationDate(this.getReservationDate());
 
-            ManagementApplication.applicationContext.getBean(TaxiCall.external.DriverService.class)
-                    .checkOrder(driver);
+            System.out.println(this.getOwnerId() + "TEST 1");
+
+            ManagementApplication.applicationContext.getBean(RestaurantReservation.external.OwnerService.class)
+                    .checkReservation(owner);
 
             System.out.println("AAAA");
-        }
-
-        else if(this.getStatus().equals("OrderCanceled")) {
-            CancelOrderRequested cancelOrderRequested = new CancelOrderRequested();
-
-            cancelOrderRequested.setOrderId(this.getOrderId());
-            cancelOrderRequested.setStatus(this.getStatus());
-            cancelOrderRequested.setDriverId(this.getDriverId());
-
-            BeanUtils.copyProperties(this, cancelOrderRequested);
-            cancelOrderRequested.publishAfterCommit();
         }
     }
     
@@ -202,17 +191,17 @@ public interface DriverService {
 ```
 #상태 관리(Management) 서비스를 잠시 내려놓음 (ctrl+c)
 
-#고객호출요청
-http POST localhost:8081/orders driverId=1 customerName="customer1" location="seoul1" status="Ordered"   #Fail
-http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="Ordered"   #Fail
+#고객 예약 요청
+http POST localhost:8081/reservations orderId=1 driverId=1 customerName="customer1" reservationDate="20200916" status="SSS"   #Fail
+http POST localhost:8081/reservations orderId=2 driverId=2 customerName="customer2" reservationDate="20200916" status="SSS"   #Fail
 
 #상태 관리 재기동
 cd Management
 mvn spring-boot:run
 
 #고객검진요청 처리
-http POST localhost:8081/orders driverId=1 customerName="customer1" location="seoul1" status="Ordered"   #Success
-http POST localhost:8081/orders driverId=2 customerName="customer2" location="seoul2" status="Ordered"   #Success
+http POST localhost:8081/reservations orderId=1 driverId=1 customerName="customer1" reservationDate="20200916" status="SSS"   #Success
+http POST localhost:8081/reservations orderId=2 driverId=2 customerName="customer2" reservationDate="20200916" status="SSS"   #Success
 ```
 
 - 또한 과도한 요청시에 서비스 장애가 도미노 처럼 벌어질 수 있다. (서킷브레이커, Fallback 처리는 운영단계에서 설명한다.)

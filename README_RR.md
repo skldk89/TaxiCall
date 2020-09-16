@@ -57,24 +57,15 @@
   ![1](https://user-images.githubusercontent.com/67453893/91927140-baa8af00-ed13-11ea-8ead-0d4616a6da56.png)
 
 ## TO-BE 조직 (Vertically-Aligned)
-  ![#017](https://github.com/skldk89/TaxiCall/blob/master/Image/%23017.png)
+  ![#17](https://github.com/skldk89/TaxiCall/blob/master/Image/%2317.png)
 
 ## Event Storming 결과
-
-![#000](https://github.com/skldk89/TaxiCall/blob/master/Image/%23000.png)
-
-### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
-![#011](https://github.com/skldk89/TaxiCall/blob/master/Image/%23011.png)
-![#012](https://github.com/skldk89/TaxiCall/blob/master/Image/%23012.png)
-![#013](https://github.com/skldk89/TaxiCall/blob/master/Image/%23013.png)
-![#014](https://github.com/skldk89/TaxiCall/blob/master/Image/%23014.png)
-![#015](https://github.com/skldk89/TaxiCall/blob/master/Image/%23015.png)
+![#00](https://github.com/skldk89/TaxiCall/blob/master/Image/%2300.png)
 
 ## 헥사고날 아키텍처 다이어그램 도출
 
-* CQRS 를 위한 orderStatus 서비스만 DB를 구분하여 적용
-![#018](https://github.com/skldk89/TaxiCall/blob/master/Image/%23018.png)
-
+* CQRS 를 위한 reservationStatus 서비스만 DB를 구분하여 적용
+![#18](https://github.com/skldk89/TaxiCall/blob/master/Image/%2318.png)
 
 # 구현
 
@@ -82,10 +73,9 @@
 
 | 기능 | 이벤트 Payload |
 |---|:---:|
-| 1. 고객이 택시를 호출(장소, 고객명)한다. |![#024](https://github.com/skldk89/TaxiCall/blob/master/Image/%23024.png)|
-| 2. Management 에서 호출을 받아서 택시 기사에서 체크할 것을 요청한다.(Sync)</br>3. 택시 기사는 받은 호출을 수락하거나 거절한다.(Async)</br>4. Management에서 변경사항을 접수 받는다.</br>5. 호출 수락 시 고객에게 호출되었음을 공유한다.(Async)</br>6. 호출 거절 시 고객에게 호출 거절되었음을 공유한다.(Async) |![#025](https://github.com/skldk89/TaxiCall/blob/master/Image/%23025.png)</br>![#026](https://github.com/skldk89/TaxiCall/blob/master/Image/%23026.png)|
-| 7. 고객이 Taxi 호출 예약을 취소한다.(Async)</br>8. 고객의 예약 취소에 따라서 Management 내역의 상태가 예약 취소로 변경된다.</br>9. Driver에게 예약취소 되었음을 공유 한다.(Async) | ![#027](https://github.com/skldk89/TaxiCall/blob/master/Image/%23027.png)</br>![#028](https://github.com/skldk89/TaxiCall/blob/master/Image/%23028.png)</br>![#029](https://github.com/skldk89/TaxiCall/blob/master/Image/%23029.png) |
-| 10. 호출된 현황을 조회한다.| ![#030](https://github.com/skldk89/TaxiCall/blob/master/Image/%23030.png) |
+| 1. 고객이 식당을 예약(고객명, 일자)한다. |![#24](https://github.com/skldk89/TaxiCall/blob/master/Image/%2324.png)</br>![#25](https://github.com/skldk89/TaxiCall/blob/master/Image/%2325.png)|
+| 2. Management 에서 호출을 받아서 식당 주인에게 체크할 것을 요청한다.(Sync)</br>3. 식당 주인은 받은 호출을 수락하거나 거절한다.(Async)</br>4. Management에서 변경사항을 접수 받는다.</br>5. 예약 수락 시 고객에게 수락 되었음을 공유한다.(Async)</br>6. 예약 거절 시 고객에게 거절되었음을 공유한다.(Async) |![#27](https://github.com/skldk89/TaxiCall/blob/master/Image/%2327.png)</br>![#28](https://github.com/skldk89/TaxiCall/blob/master/Image/%2328.png)|
+| 7. 현황을 조회한다.| ![#29](https://github.com/skldk89/TaxiCall/blob/master/Image/%2329.png) |
 
 
 ## DDD 의 적용

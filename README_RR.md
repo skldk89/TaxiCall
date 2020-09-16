@@ -1,15 +1,15 @@
-# 5th-teamA-Taxi-Call
+# admin03-RestaurantReservation
 
-# TaxiCall (택시 호출 서비스)
+# RestaurantReservation (식당 예약 서비스)
 
 # repo
- 1. 호출관리 : https://github.com/rladutp/order.git
- 1. 상태관리 : https://github.com/rladutp/management.git
- 1. 기사관리 : https://github.com/rladutp/driver.git
- 1. 예약관리 : https://github.com/rladutp/orderStatus.git
+ 1. 예약관리 : https://github.com/skldk89/Reservation.git
+ 1. 상태관리 : https://github.com/skldk89/Management.git
+ 1. 식당관리 : https://github.com/skldk89/Owner.git
+ 1. 현황관리 : https://github.com/rladutp/reservationStatus.git
  1. 게이트웨이 : https://github.com/rladutp/gateway.git
 
-A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
+식당 에약 서비스 CNA개발 실습을 위한 프로젝트
 
 # Table of contents
 
@@ -32,23 +32,20 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 # 서비스 시나리오
 
 ## 기능적 요구사항
-1. 고객이 택시를 호출(장소, 고객명)한다.
-1. Management 에서 호출을 받아서 택시 기사에서 체크할 것을 요청한다.(Sync)
-1. 택시 기사는 받은 호출을 수락하거나 거절한다.(Async)
+1. 고객이 식당을 예약(고객명, 일자)한다.
+1. Management 에서 호출을 받아서 식당 주인에게 체크할 것을 요청한다.(Sync)
+1. 식당 주인은 받은 호출을 수락하거나 거절한다.(Async)
 1. Management에서 변경사항을 접수 받는다.
-1. 호출 수락 시 고객에게 호출되었음을 공유한다.(Async)
-1. 호출 거절 시 고객에게 호출 거절되었음을 공유한다.(Async)
-1. 고객이 Taxi 호출 예약을 취소한다.(Async)
-1. 고객의 예약 취소에 따라서 Management 내역의 상태가 예약 취소로 변경된다.
-1. Driver에게 예약취소 되었음을 공유 한다.(Async)
-1. 호출된 현황을 조회한다.
+1. 예약 수락 시 고객에게 수락 되었음을 공유한다.(Async)
+1. 예약 거절 시 고객에게 거절되었음을 공유한다.(Async)
+1. 현황을 조회한다.
 
 ## 비기능적 요구사항
 1. 트랜잭션
-    1. 고객의 예약을 기사가 수락/거절 가능하다. > Sync
-    1. 고객의 취소에 따라서 요청 예약의 상태가 변경된다. > Async
+    1. 고객의 예약을 식당 주인이 수락/거절 가능하다. > Sync
+    1. 식당 주인이 거절하면 요청 예약의 상태가 변경된다. > Async
 1. 장애격리
-    1. 기사 관리 서비스에 장애가 발생하더라도 고객 예약은 정상적으로 처리 가능하다.  > Async (event-driven)
+    1. 식당 관리 서비스에 장애가 발생하더라도 고객 예약은 정상적으로 처리 가능하다.  > Async (event-driven)
     1. 서킷 브레이킹 프레임워크 > istio-injection + DestinationRule
 1. 성능
     1. 고객은 본인의 예약 상태 및 이력 정보를 확인할 수 있다. > CQRS
@@ -65,45 +62,6 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 ## Event Storming 결과
 
 ![#000](https://github.com/skldk89/TaxiCall/blob/master/Image/%23000.png)
-
-### 이벤트 도출
-![#001](https://github.com/skldk89/TaxiCall/blob/master/Image/%23001.png)
-
-### 부적격 이벤트 탈락
-![#002](https://github.com/skldk89/TaxiCall/blob/master/Image/%23002.png)
-
-    - 과정중 도출된 잘못된 도메인 이벤트들을 걸러내는 작업을 수행함
-
-### 액터, 커맨드 부착하여 읽기 좋게
-![#003](https://github.com/skldk89/TaxiCall/blob/master/Image/%23003.png)
-
-### 어그리게잇으로 묶기
-![#004](https://github.com/skldk89/TaxiCall/blob/master/Image/%23004.png)
-
-
-### 바운디드 컨텍스트로 묶기
-
-![#005](https://github.com/skldk89/TaxiCall/blob/master/Image/%23005.png)
-
-    - 도메인 서열 분리 
-        - Core Domain:  Management : 없어서는 안될 핵심 서비스이며, 연결 Up-time SLA 수준을 99.999% 목표, 배포주기는  1주일 1회 미만
-        - Supporting Domain:   Order : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 80% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
-        - General Domain:   Driver : Order의 상태를 수신하고, 요청에 대한 승인/거절을 진행하는 서비스이며, SLA 수준은 연간 80% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함. 
-
-### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
-
-![#006](https://github.com/skldk89/TaxiCall/blob/master/Image/%23006.png)
-
-### 폴리시의 이동과 컨텍스트 매핑 (점선은 Pub/Sub, 실선은 Req/Resp)
-
-![#007](https://github.com/skldk89/TaxiCall/blob/master/Image/%23007.png)
-
-```
-# 도메인 서열
-- Core : Management
-- Supporting : Order
-- General : Driver
-```
 
 ### 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
 ![#011](https://github.com/skldk89/TaxiCall/blob/master/Image/%23011.png)

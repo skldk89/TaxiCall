@@ -1,6 +1,6 @@
 # 5th-teamA-Taxi-Call
 
-# screeningReservation (택시 호출 서비스)
+# TaxiCall (택시 호출 서비스)
 
 # repo
  1. 호출관리 : https://github.com/rladutp/order.git
@@ -124,10 +124,10 @@ A조 택시 호출 서비스 CNA개발 실습을 위한 프로젝트
 
 | 기능 | 이벤트 Payload |
 |---|:---:|
-| 1. 고객이 택시를 호출(장소, 고객명)한다. |![image](https://user-images.githubusercontent.com/25805562/91837451-3577b880-ec87-11ea-88b1-dc4e9d74790d.png)|
-| 2. Management 에서 호출을 받아서 택시 기사에서 체크할 것을 요청한다.(Sync)</br>3. 택시 기사는 받은 호출을 수락하거나 거절한다.(Async)</br>4. Management에서 변경사항을 접수 받는다.</br>5. 호출 수락 시 고객에게 호출되었음을 공유한다.(Async)</br>6. 호출 거절 시 고객에게 호출 거절되었음을 공유한다.(Async) |![image](https://user-images.githubusercontent.com/25805562/91837806-7a035400-ec87-11ea-8966-09403bd5e7eb.png)|
-| 7. 고객이 Taxi 호출 예약을 취소한다.(Async)</br>8. 고객의 예약 취소에 따라서 Management 내역의 상태가 예약 취소로 변경된다.</br>9. Driver에게 예약취소 되었음을 공유 한다.(Async) | ![image](https://user-images.githubusercontent.com/25805562/91837990-c2227680-ec87-11ea-9fb1-530410922532.png) |
-| 10. 호출된 현황을 조회한다.| ![image](https://user-images.githubusercontent.com/25805562/91838415-6ad0d600-ec88-11ea-9df8-1c6895fe6d75.png) |
+| 1. 고객이 택시를 호출(장소, 고객명)한다. |![#024](https://github.com/skldk89/TaxiCall/blob/master/Image/%23024.png)|
+| 2. Management 에서 호출을 받아서 택시 기사에서 체크할 것을 요청한다.(Sync)</br>3. 택시 기사는 받은 호출을 수락하거나 거절한다.(Async)</br>4. Management에서 변경사항을 접수 받는다.</br>5. 호출 수락 시 고객에게 호출되었음을 공유한다.(Async)</br>6. 호출 거절 시 고객에게 호출 거절되었음을 공유한다.(Async) |![#025](https://github.com/skldk89/TaxiCall/blob/master/Image/%23025.png)</br>![#026](https://github.com/skldk89/TaxiCall/blob/master/Image/%23026.png)|
+| 7. 고객이 Taxi 호출 예약을 취소한다.(Async)</br>8. 고객의 예약 취소에 따라서 Management 내역의 상태가 예약 취소로 변경된다.</br>9. Driver에게 예약취소 되었음을 공유 한다.(Async) | ![#027](https://github.com/skldk89/TaxiCall/blob/master/Image/%23027.png)</br>![#028](https://github.com/skldk89/TaxiCall/blob/master/Image/%23028.png)</br>![#029](https://github.com/skldk89/TaxiCall/blob/master/Image/%23029.png) |
+| 10. 호출된 현황을 조회한다.| ![#030](https://github.com/skldk89/TaxiCall/blob/master/Image/%23030.png) |
 
 
 ## DDD 의 적용
@@ -387,119 +387,53 @@ MSA 서비스별 CodeBuild 프로젝트 생성하여  CI/CD 파이프라인 구�
 
 * istio-injection 적용 (기 적용완료)
 ```
-kubectl label namespace skcc-ns istio-injection=enabled
+# Sidecar Actvate
+kubectl label namespace istio-cb-ns istio-injection=enabled 
 ```
 
 * 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
-- 동시사용자 100명
-- 60초 동안 실시
+- 동시사용자 10명
+- 5초 동안 실시
 ```
-$siege -c100 -t60S -r10  -v http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals 
-HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.00 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.00 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.00 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
+$siege -c10 -t5S -v  http://a-driver:8080
 ```
+![#021](https://github.com/skldk89/TaxiCall/blob/master/Image/%23021.png)
+
 * 서킷 브레이킹을 위한 DestinationRule 적용
 ```
-#dr-hospital.yaml
+#dr-driver.yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
-  name: dr-hospital
-  namespace: skcc-ns
+  name: dr-driver
+  namespace: istio-cb-ns
 spec:
-  host: hospitalmanage
+  host: a-driver
   trafficPolicy:
     connectionPool:
       http:
-        http1MaxPendingRequests: 1
-        maxRequestsPerConnection: 1
+        http1MaxPendingRequests: 5
+        maxRequestsPerConnection: 5
     outlierDetection:
       interval: 1s
-      consecutiveErrors: 2
-      baseEjectionTime: 10s
+      consecutiveErrors: 1
+      baseEjectionTime: 3s
       maxEjectionPercent: 100
 ```
 
 
 ```
-$kubectl apply -f dr-hospital.yaml
-
-$siege -c100 -t60S -r10  -v http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals 
-HTTP/1.1 200   0.03 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.04 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.02 secs:      95 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      95 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.03 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.02 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.01 secs:      19 bytes ==> GET  /hospitals
-HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /hospitals
-
-Transactions:                    194 hits
-Availability:                  16.68 %
-Elapsed time:                  59.76 secs
-Data transferred:               1.06 MB
-Response time:                  0.03 secs
-Transaction rate:               3.25 trans/sec
-Throughput:                     0.02 MB/sec
-Concurrency:                    0.10
-Successful transactions:         194
-Failed transactions:             969
-Longest transaction:            0.04
-Shortest transaction:           0.00
-
-
+$kubectl apply -f dr-driver.yaml
+$siege -c10 -t5S -v  http://a-driver:8080
 ```
+![#022](https://github.com/skldk89/TaxiCall/blob/master/Image/%23022.png)
 
 * DestinationRule 적용되어 서킷 브레이킹 동작 확인 (kiali 화면)
-![Kaili_DR RUlE적용](https://user-images.githubusercontent.com/67453893/91850567-b7bca880-ec98-11ea-8f9b-59b4223fb046.png)
+![#023](https://github.com/skldk89/TaxiCall/blob/master/Image/%23023.png)
 
 * 다시 부하 발생하여 DestinationRule 적용 제거하여 정상 처리 확인
 ```
-kubectl delete -f dr-hospital.yaml
+kubectl delete -f dr-driver.yaml
 ```
 
 
@@ -514,91 +448,103 @@ $kubectl get deployment metrics-server -n kube-system
 
 * (istio injection 적용한 경우) istio injection 적용 해제
 ```
-kubectl label namespace skcc-ns istio-injection=disabled --overwrite
+kubectl label namespace istio-cb-ns istio-injection=disabled --overwrite
 ```
 
-- Deployment 배포시 resource 설정 적용
+- replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 20프로를 넘어서면 replica 를 10개까지 늘려준다:
 ```
-    spec:
-      containers:
-          ...
-          resources:
-            limits:
-              cpu: 500m 
-            requests:
-              cpu: 200m 
-```
-
-- replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다:
-```
-kubectl autoscale deploy hospitalmanage -n skcc-ns --min=1 --max=10 --cpu-percent=15
+kubectl autoscale deploy a-driver -n istio-cb-ns --min=1 --max=10 --cpu-percent=20
 
 # 적용 내용
-$kubectl get all -n skcc-ns
-NAME                        TYPE           CLUSTER-IP       EXTERNAL-IP                                                              PORT(S)          AGE
-service/gateway             LoadBalancer   10.100.95.162    a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com   8080:30387/TCP   19h
-service/hospitalmanage      ClusterIP      10.100.5.64      <none>                                                                   8080/TCP         19h
-service/mypage              ClusterIP      10.100.240.169   <none>                                                                   8080/TCP         19h
-service/reservationmanage   ClusterIP      10.100.232.233   <none>                                                                   8080/TCP         19h
-service/screeningmanage     ClusterIP      10.100.101.120   <none>                                                                   8080/TCP         19h
+$kubectl get all -n istio-cb-ns
+NAME                                READY   STATUS    RESTARTS   AGE
+pod/a-driver-7d64667f79-ghspc       1/1     Running   1          5m14s
+pod/a-driver-7d64667f79-lsvc6       0/1     Running   0          7s
+pod/a-driver-7d64667f79-nk7gg       0/1     Running   0          7s
+pod/a-driver-7d64667f79-tcssl       0/1     Running   0          7s
+pod/a-gateway-64c49fb9c-fvxs5       2/2     Running   0          5h15m
+pod/a-management-5565fcf6b7-vmjlf   2/2     Running   1          101m
+pod/a-order-86f4f96986-x2q8b        2/2     Running   2          6h14m
+pod/a-orderstatus-8c867d5df-5sfww   2/2     Running   3          6h18m
+pod/httpie                          2/2     Running   0          9h
+pod/siege-7df8f548c-pvv6w           2/2     Running   0          9h
 
-NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/gateway             1/1     1            1           19h
-deployment.apps/hospitalmanage      1/1     1            1           11h
-deployment.apps/mypage              1/1     1            1           19h
-deployment.apps/reservationmanage   1/1     1            1           19h
-deployment.apps/screeningmanage     1/1     1            1           19h
+NAME                    TYPE           CLUSTER-IP       EXTERNAL-IP                                                                    PORT(S)          AGE
+service/a-driver        ClusterIP      10.100.195.28    <none>                                                                         8080/TCP         9h
+service/a-gateway       LoadBalancer   10.100.30.17     ab63205308df54474afe2cebc4e45bb5-1085189319.ap-northeast-2.elb.amazonaws.com   8080:31850/TCP   9h
+service/a-management    ClusterIP      10.100.205.161   <none>                                                                         8080/TCP         26h
+service/a-order         ClusterIP      10.100.59.26     <none>                                                                         8080/TCP         25h
+service/a-orderstatus   ClusterIP      10.100.33.227    <none>                                                                         8080/TCP         9h
 
-NAME                                           DESIRED   CURRENT   READY   AGE
-replicaset.apps/gateway-5d58bbcb67             1         1         1       19h
-replicaset.apps/gateway-db44fcf75              0         0         0       19h
-replicaset.apps/hospitalmanage-8658bbbb6f      1         1         1       11h
-replicaset.apps/mypage-567c4b57ff              1         1         1       18h
-replicaset.apps/mypage-f5486756b               0         0         0       19h
-replicaset.apps/reservationmanage-6f47749879   0         0         0       18h
-replicaset.apps/reservationmanage-c96669994    1         1         1       18h
-replicaset.apps/reservationmanage-f74d47f65    0         0         0       19h
-replicaset.apps/screeningmanage-56ff67c8cf     0         0         0       18h
-replicaset.apps/screeningmanage-598b5f9767     0         0         0       17h
-replicaset.apps/screeningmanage-645c457774     0         0         0       19h
-replicaset.apps/screeningmanage-6485bb9857     0         0         0       17h
-replicaset.apps/screeningmanage-6865764467     0         0         0       19h
-replicaset.apps/screeningmanage-78984d5dc8     0         0         0       17h
-replicaset.apps/screeningmanage-9498f6bdc      1         1         1       17h
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/a-driver        1/4     4            1           9h
+deployment.apps/a-gateway       1/1     1            1           9h
+deployment.apps/a-management    1/1     1            1           26h
+deployment.apps/a-order         1/1     1            1           25h
+deployment.apps/a-orderstatus   1/1     1            1           9h
+deployment.apps/siege           1/1     1            1           9h
 
-NAME                                                 REFERENCE                   TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
-horizontalpodautoscaler.autoscaling/hospitalmanage   Deployment/hospitalmanage   2%/15%   1         10        0          7s
+NAME                                      DESIRED   CURRENT   READY   AGE
+replicaset.apps/a-driver-6b69686948       0         0         0       118m
+replicaset.apps/a-driver-7d64667f79       4         4         1       5m15s
+replicaset.apps/a-driver-86567d5564       0         0         0       74m
+replicaset.apps/a-gateway-64c49fb9c       1         1         1       5h15m
+replicaset.apps/a-management-5565fcf6b7   1         1         1       101m
+replicaset.apps/a-management-5d6cbb5568   0         0         0       125m
+replicaset.apps/a-management-657c879dff   0         0         0       130m
+replicaset.apps/a-management-6949d6d89f   0         0         0       119m
+replicaset.apps/a-management-6d7b5b64f    0         0         0       6h23m
+replicaset.apps/a-management-7b76f45765   0         0         0       4h7m
+replicaset.apps/a-management-9f68d559     0         0         0       25h
+replicaset.apps/a-order-66dcd46648        0         0         0       25h
+replicaset.apps/a-order-86f4f96986        1         1         1       6h14m
+replicaset.apps/a-orderstatus-6cd5fcc9b   0         0         0       9h
+replicaset.apps/a-orderstatus-8c867d5df   1         1         1       6h18m
+replicaset.apps/siege-7df8f548c           1         1         1       9h
+
+NAME                                           REFERENCE             TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/a-driver   Deployment/a-driver   12%/20%   1         10        1          39m
 ```
 
-- siege로 워크로드를 1분 동안 걸어준다.
+- siege로 워크로드를 2분 동안 걸어준다.
 ```
-$  siege -c100 -t60S -r10  -v http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+$  siege -c100 -t120S -v  http://a-driver:8080
 ```
 
 - 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
 ```
-kubectl get deploy hospitalmanage -n skcc-ns -w 
+kubectl get deploy a-driver -w 
 ```
 
 - 어느정도 시간이 흐른 후 (약 30초) 스케일 아웃이 벌어지는 것을 확인할 수 있다:
 ```
-NAME             READY   UP-TO-DATE   AVAILABLE   AGE
-hospitalmanage   1/1     1            1           11h
-hospitalmanage   1/4     1            1           11h
-hospitalmanage   1/4     1            1           11h
-hospitalmanage   1/4     1            1           11h
-hospitalmanage   1/4     4            1           11h
-hospitalmanage   1/5     4            1           11h
-hospitalmanage   1/5     4            1           11h
-hospitalmanage   1/5     4            1           11h
-hospitalmanage   1/5     5            1           11h
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+a-driver   1/1     1            1           9h
+a-driver   2/1     1            2           9h
+a-driver   1/1     1            1           9h
+a-driver   0/1     1            0           9h
+a-driver   1/1     1            1           9h
+a-driver   1/4     1            1           9h
+a-driver   1/4     1            1           9h
+a-driver   1/4     1            1           9h
+a-driver   1/4     4            1           9h
+a-driver   1/7     4            1           9h
+a-driver   1/7     4            1           9h
+a-driver   1/7     4            1           9h
+a-driver   1/7     7            1           9h
+a-driver   2/7     7            2           9h
+a-driver   3/7     7            3           9h
+a-driver   4/7     7            4           9h
+a-driver   5/7     7            5           9h
+a-driver   6/7     7            6           9h
+a-driver   7/7     7            7           9h
 ```
 
-- kubectl get으로 HPA을 확인하면 CPU 사용률이 64%로 증가됐다.
+- kubectl get으로 HPA을 확인하면 CPU 사용률이 136%로 증가됐다.
 ```
-$kubectl get hpa hospitalmanage -n skcc-ns 
-NAME                                                 REFERENCE                   TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
-horizontalpodautoscaler.autoscaling/hospitalmanage   Deployment/hospitalmanage   64%/15%   1         10        5          2m54s
+$kubectl get hpa a-driver 
+NAME       REFERENCE             TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+a-driver   Deployment/a-driver   136%/20%    1         10        7          41m
 ```
 
 - siege 의 로그를 보면 Availability가 100%로 유지된 것을 확인 할 수 있다.  
@@ -620,7 +566,7 @@ Shortest transaction:           0.00
 
 - HPA 삭제 
 ```
-$kubectl kubectl delete hpa hospitalmanage  -n skcc-ns
+$kubectl kubectl delete hpa a-driver
 ```
 
 
@@ -631,16 +577,14 @@ Readiness Probe 미설정 시 무정지 재배포 가능여부 확인을 위해 
 
 - seige 로 배포작업 직전에 워크로드를 모니터링 함.
 ```
-$ siege -v -c1 -t240S --content-type "application/json" 'http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals POST {"id": "101","hospitalId":"2","hospitalNm":"bye","chkDate":"0909","pcnt":20}'
+$ siege -c1 -t300S -r20 -v  http://a-driver:8080
 
-** SIEGE 4.0.4
-** Preparing 100 concurrent users for battle.
 The server is now under siege...
 
-HTTP/1.1 200     0.48 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 200     0.49 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 200     0.63 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 200     0.48 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.02 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.09 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
 :
 
 ```
@@ -649,34 +593,38 @@ HTTP/1.1 200     0.48 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac
 Git hook 연동 설정되어 Github의 소스 변경 발생 시 자동 빌드 배포됨
 재배포 작업 중 서비스 중단됨 (503 오류 발생)
 ```
-HTTP/1.1 200     0.48 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 200     0.55 secs:       0 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 503     0.47 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 503     0.48 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 503     0.51 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 503     0.47 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 503     0.48 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 503     0.53 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 503     0.50 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
-HTTP/1.1 503     0.45 secs:      95 bytes ==> POST http://a67fdf8668e5d4b518f8ac2a62bd4b45-334568913.us-east-2.elb.amazonaws.com:8080/hospitals
+HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.06 secs:     206 bytes ==> GET  /
+HTTP/1.1 503     0.07 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.04 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.03 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.09 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.03 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.02 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.05 secs:      91 bytes ==> GET  /
 :
 
 ```
 
 - seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
 ```
-Transactions:                    372 hits
-Availability:                  90.29 %
-Elapsed time:                 205.09 secs
-Data transferred:               0.00 MB
-Response time:                  0.55 secs
-Transaction rate:               1.81 trans/sec
-Throughput:                     0.00 MB/sec
-Concurrency:                    1.00
-Successful transactions:         372
-Failed transactions:              40
-Longest transaction:            1.50
-Shortest transaction:           0.43
+Transactions:                  77349 hits
+Availability:                  98.82 %
+Elapsed time:                 400.06 secs
+Data transferred:              15.27 MB
+Response time:                  0.00 secs
+Transaction rate:             193.34 trans/sec
+Throughput:                     0.04 MB/sec
+Concurrency:                    0.94
+Successful transactions:       77349
+Failed transactions:             926
+Longest transaction:            1.96
+Shortest transaction:           0.00
+
 
 ```
 - 배포기간중 Availability 가 평소 100%에서 90% 대로 떨어지는 것을 확인. 
@@ -690,7 +638,7 @@ readinessProbe:
     httpGet:
       path: '/actuator/health'
       port: 8080
-    initialDelaySeconds: 30
+    initialDelaySeconds: 10
     timeoutSeconds: 2
     periodSeconds: 5
     failureThreshold: 10
@@ -699,18 +647,18 @@ readinessProbe:
 
 - 동일한 시나리오로 재배포 한 후 Availability 확인:
 ```
-Transactions:                    234 hits
+Transactions:                  71859 hits
 Availability:                 100.00 %
-Elapsed time:                 119.04 secs
-Data transferred:               0.00 MB
-Response time:                  0.51 secs
-Transaction rate:               1.97 trans/sec
-Throughput:                     0.00 MB/sec
-Concurrency:                    1.00
-Successful transactions:         234
+Elapsed time:                 299.15 secs
+Data transferred:              14.12 MB
+Response time:                  0.00 secs
+Transaction rate:             240.21 trans/sec
+Throughput:                     0.05 MB/sec
+Concurrency:                    0.96
+Successful transactions:       71859
 Failed transactions:               0
-Longest transaction:            1.57
-Shortest transaction:           0.41
+Longest transaction:            0.50
+Shortest transaction:           0.00
 
 ```
 
@@ -722,87 +670,113 @@ Shortest transaction:           0.41
 시스템별로 또는 운영중에 동적으로 변경 가능성이 있는 설정들을 ConfigMap을 사용하여 관리합니다.
 Application에서 특정 도메일 URL을 ConfigMap 으로 설정하여 운영/개발등 목적에 맞게 변경가능합니다.  
 
-* my-config.yaml
+* a-config.yaml
 ```
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: my-config
-  namespace: skcc-ns
+  name: a-config
+  namespace: istio-cb-ns
 data:
-  api.hospital.url: http://HospitalManage:8080
+  api.url.driver: http://a-driver:8080
 ```
-my-config라는 ConfigMap을 생성하고 key값에 도메인 url을 등록한다. 
+a-config라는 ConfigMap을 생성하고 key값에 도메인 url을 등록한다. 
 
-* ScreeningManage/buildsepc.yaml (configmap 사용)
+* Management/buildsepc.yaml (configmap 사용)
 ```
- cat  <<EOF | kubectl apply -f -
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: $_PROJECT_NAME
-          namespace: $_NAMESPACE
-          labels:
-            app: $_PROJECT_NAME
-        spec:
-          replicas: 1
-          selector:
-            matchLabels:
+cat  <<EOF | kubectl apply -f -
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: $_PROJECT_NAME
+            namespace: istio-cb-ns
+            labels:
               app: $_PROJECT_NAME
-          template:
-            metadata:
-              labels:
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
                 app: $_PROJECT_NAME
-            spec:
-              containers:
-                - name: $_PROJECT_NAME
-                  image: $AWS_ACCOUNT_ID.dkr.ecr.$_AWS_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
-                  ports:
-                    - containerPort: 8080
-                  env:
-                    - name: api.hospital.url
-                      valueFrom:
-                        configMapKeyRef:
-                          name: my-config
-                          key: api.hospital.url
-                  imagePullPolicy: Always
-                
+            template:
+              metadata:
+                labels:
+                  app: $_PROJECT_NAME
+              spec:
+                containers:
+                  - name: $_PROJECT_NAME
+                    image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$_PROJECT_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
+                    ports:
+                      - containerPort: 8080
+                    env:
+                      - name: api.url.driver
+                        valueFrom:
+                          configMapKeyRef:
+                            name: a-config
+                            key: api.url.driver
+                    readinessProbe:
+                      httpGet:
+                        path: /actuator/health
+                        port: 8080
+                      initialDelaySeconds: 10
+                      timeoutSeconds: 2
+                      periodSeconds: 5
+                      failureThreshold: 10
+                    livenessProbe:
+                      httpGet:
+                        path: /actuator/health
+                        port: 8080
+                      initialDelaySeconds: 120
+                      timeoutSeconds: 2
+                      periodSeconds: 5
+                      failureThreshold: 5
         EOF
 ```
 Deployment yaml에 해단 configMap 적용
 
-* HospitalService.java
+* DriverService.java
 ```
-@FeignClient(name="HospitalManage", url="${api.hospital.url}")//,fallback = HospitalServiceFallback.class)
-public interface HospitalService {
+@FeignClient(name="Driver", url= "${api.url.driver}")
+public interface DriverService {
 
-    @RequestMapping(method= RequestMethod.PUT, value="/hospitals/{hospitalId}", consumes = "application/json")
-    public void screeningRequest(@PathVariable("hospitalId") Long hospitalId, @RequestBody Hospital hospital);
+    @RequestMapping(method= RequestMethod.GET, path="/drivers/check")
+    public void checkOrder(@RequestBody Driver param);
 
 }
 ```
 url에 configMap 적용
 
-* kubectl describe pod screeningmanage-9498f6bdc-qtclh  -n skcc-ns
+* kubectl describe pod/a-management-5565fcf6b7-vmjlf -n istio-cb-ns
 ```
 Containers:
-  screeningmanage:
-    Container ID:   docker://8415f0125bac0264b5f77d14ed8ee7c28bc177e2cce9141a4c36e076c7920971
-    Image:          052937454741.dkr.ecr.us-east-2.amazonaws.com/screeningmanage:f8102f4078683bdbf345cc5cae7983b1cb8ea                                                                      668
-    Image ID:       docker-pullable://052937454741.dkr.ecr.us-east-2.amazonaws.com/screeningmanage@sha256:ebc8945df607                                                                      acc63d87e20d345e17245e3472fec43a9690e8ab9ca959573c9b
+  a-management:
+    Container ID:   docker://1bd0c96dc3ab4ee0d080104952c21e6e49ca9d7711d47b157ef3d3520febfa26
+    Image:          271153858532.dkr.ecr.ap-northeast-2.amazonaws.com/a-management:198772e0ab0fb240f7f05d0d0c32deb03ffe8b03
+    Image ID:       docker-pullable://271153858532.dkr.ecr.ap-northeast-2.amazonaws.com/a-management@sha256:ebabfd754f645d3e0a8b9d5653634a1e5bb153ec15bb614edb75b0f5f2cbaad8
     Port:           8080/TCP
     Host Port:      0/TCP
     State:          Running
-      Started:      Tue, 01 Sep 2020 07:55:29 +0000
+      Started:      Tue, 15 Sep 2020 09:12:40 +0000
     Ready:          True
     Restart Count:  0
     Liveness:       http-get http://:8080/actuator/health delay=120s timeout=2s period=5s #success=1 #failure=5
-    Readiness:      http-get http://:8080/actuator/health delay=30s timeout=2s period=5s #success=1 #failure=10
+    Readiness:      http-get http://:8080/actuator/health delay=10s timeout=2s period=5s #success=1 #failure=10
     Environment:
-      api.hospital.url:  <set to the key 'api.hospital.url' of config map 'my-config'>  Optional: false
+      api.url.driver:  <set to the key 'api.url.driver' of config map 'a-config'>  Optional: false
     Mounts:
-      /var/run/secrets/kubernetes.io/serviceaccount from default-token-xw8ld (ro)
-
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-zcgdh (ro)
+  istio-proxy:
+    Container ID:  docker://bdb76ddb2a6243617094b905fd76dc4954caf49d4dc56412536d9dff35eff8e4
+    Image:         docker.io/istio/proxyv2:1.4.5
+    Image ID:      docker-pullable://istio/proxyv2@sha256:fc09ea0f969147a4843a564c5b677fbf3a6f94b56627d00b313b4c30d5fef094
+    Port:          15090/TCP
+    Host Port:     0/TCP
+    Args:
+      proxy
+      sidecar
+      --domain
+      $(POD_NAMESPACE).svc.cluster.local
+      --configPath
+      /etc/istio/proxy
 ```
 kubectl describe 명령으로 컨테이너에 configMap 적용여부를 알 수 있다. 
 

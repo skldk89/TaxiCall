@@ -497,7 +497,7 @@ metadata:
   name: dr-owner
   namespace: istio-cb-ns
 spec:
-  host: a-owner
+  host: owner
   trafficPolicy:
     connectionPool:
       http:

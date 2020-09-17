@@ -596,14 +596,14 @@ Readiness Probe 미설정 시 무정지 재배포 가능여부 확인을 위해 
 
 - seige 로 배포작업 직전에 워크로드를 모니터링 함.
 ```
-$ siege -c1 -t300S -r20 -v  http://a-driver:8080
+$ siege -c1 -t300S -r20 -v  http://admin03-owner:8080
 
 The server is now under siege...
 
-HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.02 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.09 secs:     206 bytes ==> GET  /
 HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.09 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.02 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
 :
 
 ```
@@ -612,19 +612,19 @@ HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
 Git hook 연동 설정되어 Github의 소스 변경 발생 시 자동 빌드 배포됨
 재배포 작업 중 서비스 중단됨 (503 오류 발생)
 ```
-HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
 HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
 HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
 HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.02 secs:     206 bytes ==> GET  /
 HTTP/1.1 200     0.06 secs:     206 bytes ==> GET  /
+HTTP/1.1 503     0.05 secs:      91 bytes ==> GET  /
 HTTP/1.1 503     0.07 secs:      91 bytes ==> GET  /
-HTTP/1.1 503     0.04 secs:      91 bytes ==> GET  /
 HTTP/1.1 503     0.03 secs:      91 bytes ==> GET  /
 HTTP/1.1 503     0.09 secs:      91 bytes ==> GET  /
 HTTP/1.1 503     0.03 secs:      91 bytes ==> GET  /
-HTTP/1.1 503     0.02 secs:      91 bytes ==> GET  /
-HTTP/1.1 503     0.05 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.06 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.07 secs:      91 bytes ==> GET  /
 :
 
 ```
@@ -632,16 +632,16 @@ HTTP/1.1 503     0.05 secs:      91 bytes ==> GET  /
 - seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
 ```
 Transactions:                  77349 hits
-Availability:                  98.82 %
+Availability:                  97.28 %
 Elapsed time:                 400.06 secs
-Data transferred:              15.27 MB
+Data transferred:              14.37 MB
 Response time:                  0.00 secs
-Transaction rate:             193.34 trans/sec
-Throughput:                     0.04 MB/sec
-Concurrency:                    0.94
-Successful transactions:       77349
-Failed transactions:             926
-Longest transaction:            1.96
+Transaction rate:             194.43 trans/sec
+Throughput:                     0.03 MB/sec
+Concurrency:                    0.92
+Successful transactions:       75245
+Failed transactions:             925
+Longest transaction:            1.95
 Shortest transaction:           0.00
 
 
@@ -666,15 +666,15 @@ readinessProbe:
 
 - 동일한 시나리오로 재배포 한 후 Availability 확인:
 ```
-Transactions:                  71859 hits
+Transactions:                  71843 hits
 Availability:                 100.00 %
-Elapsed time:                 299.15 secs
-Data transferred:              14.12 MB
+Elapsed time:                 298.18 secs
+Data transferred:              14.21 MB
 Response time:                  0.00 secs
-Transaction rate:             240.21 trans/sec
-Throughput:                     0.05 MB/sec
-Concurrency:                    0.96
-Successful transactions:       71859
+Transaction rate:             241.12 trans/sec
+Throughput:                     0.04 MB/sec
+Concurrency:                    0.95
+Successful transactions:       71843
 Failed transactions:               0
 Longest transaction:            0.50
 Shortest transaction:           0.00

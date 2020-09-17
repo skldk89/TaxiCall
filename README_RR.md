@@ -369,7 +369,100 @@ MSA 서비스별 CodeBuild 프로젝트 생성하여  CI/CD 파이프라인 구�
 ![#20](https://github.com/skldk89/TaxiCall/blob/master/Image/%2320.png)
 
 
-## 동기식 호출 / 서킷 브레이킹 / 장애격리
+## 무정지 재배포
+
+먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler, CB 설정을 제거함
+Readiness Probe 미설정 시 무정지 재배포 가능여부 확인을 위해 buildspec.yml의 Readiness Probe 설정을 제거함
+
+- seige 로 배포작업 직전에 워크로드를 모니터링 함.
+```
+$ siege -c1 -t300S -r20 -v  http://admin03-owner:8080
+
+The server is now under siege...
+
+HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.09 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.02 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
+:
+
+```
+
+- CI/CD 파이프라인을 통해 새버전으로 재배포 작업함
+Git hook 연동 설정되어 Github의 소스 변경 발생 시 자동 빌드 배포됨
+재배포 작업 중 서비스 중단됨 (503 오류 발생)
+```
+HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.02 secs:     206 bytes ==> GET  /
+HTTP/1.1 200     0.06 secs:     206 bytes ==> GET  /
+HTTP/1.1 503     0.05 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.07 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.03 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.09 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.03 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.06 secs:      91 bytes ==> GET  /
+HTTP/1.1 503     0.07 secs:      91 bytes ==> GET  /
+:
+
+```
+
+- seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
+```
+Transactions:                  77349 hits
+Availability:                  97.28 %
+Elapsed time:                 400.06 secs
+Data transferred:              14.37 MB
+Response time:                  0.00 secs
+Transaction rate:             194.43 trans/sec
+Throughput:                     0.03 MB/sec
+Concurrency:                    0.92
+Successful transactions:       75245
+Failed transactions:             925
+Longest transaction:            1.95
+Shortest transaction:           0.00
+
+
+```
+- 배포기간중 Availability 가 평소 100%에서 90% 대로 떨어지는 것을 확인. 
+원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문으로 판단됨. 
+이를 막기위해 Readiness Probe 를 설정함 (buildspec.yml의 Readiness Probe 설정)
+```
+# buildspec.yaml 의 Readiness probe 의 설정:
+- CI/CD 파이프라인을 통해 새버전으로 재배포 작업함
+
+readinessProbe:
+    httpGet:
+      path: '/actuator/health'
+      port: 8080
+    initialDelaySeconds: 10
+    timeoutSeconds: 2
+    periodSeconds: 5
+    failureThreshold: 10
+    
+```
+
+- 동일한 시나리오로 재배포 한 후 Availability 확인:
+```
+Transactions:                  71843 hits
+Availability:                 100.00 %
+Elapsed time:                 298.18 secs
+Data transferred:              14.21 MB
+Response time:                  0.00 secs
+Transaction rate:             241.12 trans/sec
+Throughput:                     0.04 MB/sec
+Concurrency:                    0.95
+Successful transactions:       71843
+Failed transactions:               0
+Longest transaction:            0.50
+Shortest transaction:           0.00
+
+```
+
+배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
+
 
 ### 서킷 브레이킹 istio-injection + DestinationRule
 
@@ -451,7 +544,7 @@ Shortest transaction:           0.00
 
 * 다시 부하 발생하여 DestinationRule 적용 제거하여 정상 처리 확인
 ```
-kubectl delete -f dr-driver.yaml
+kubectl delete -f dr-owner.yaml
 ```
 
 
@@ -586,100 +679,3 @@ Shortest transaction:           0.00
 ```
 $kubectl kubectl delete hpa a-driver
 ```
-
-
-## 무정지 재배포
-
-먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler, CB 설정을 제거함
-Readiness Probe 미설정 시 무정지 재배포 가능여부 확인을 위해 buildspec.yml의 Readiness Probe 설정을 제거함
-
-- seige 로 배포작업 직전에 워크로드를 모니터링 함.
-```
-$ siege -c1 -t300S -r20 -v  http://admin03-owner:8080
-
-The server is now under siege...
-
-HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.09 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.02 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
-:
-
-```
-![#40](https://github.com/skldk89/TaxiCall/blob/master/Image/%2340.png)
-![#41](https://github.com/skldk89/TaxiCall/blob/master/Image/%2341.png)
-
-- CI/CD 파이프라인을 통해 새버전으로 재배포 작업함
-Git hook 연동 설정되어 Github의 소스 변경 발생 시 자동 빌드 배포됨
-재배포 작업 중 서비스 중단됨 (503 오류 발생)
-```
-HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.00 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.02 secs:     206 bytes ==> GET  /
-HTTP/1.1 200     0.06 secs:     206 bytes ==> GET  /
-HTTP/1.1 503     0.05 secs:      91 bytes ==> GET  /
-HTTP/1.1 503     0.07 secs:      91 bytes ==> GET  /
-HTTP/1.1 503     0.03 secs:      91 bytes ==> GET  /
-HTTP/1.1 503     0.09 secs:      91 bytes ==> GET  /
-HTTP/1.1 503     0.03 secs:      91 bytes ==> GET  /
-HTTP/1.1 503     0.06 secs:      91 bytes ==> GET  /
-HTTP/1.1 503     0.07 secs:      91 bytes ==> GET  /
-:
-
-```
-
-- seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
-```
-Transactions:                  77349 hits
-Availability:                  97.28 %
-Elapsed time:                 400.06 secs
-Data transferred:              14.37 MB
-Response time:                  0.00 secs
-Transaction rate:             194.43 trans/sec
-Throughput:                     0.03 MB/sec
-Concurrency:                    0.92
-Successful transactions:       75245
-Failed transactions:             925
-Longest transaction:            1.95
-Shortest transaction:           0.00
-
-
-```
-- 배포기간중 Availability 가 평소 100%에서 90% 대로 떨어지는 것을 확인. 
-원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문으로 판단됨. 
-이를 막기위해 Readiness Probe 를 설정함 (buildspec.yml의 Readiness Probe 설정)
-```
-# buildspec.yaml 의 Readiness probe 의 설정:
-- CI/CD 파이프라인을 통해 새버전으로 재배포 작업함
-
-readinessProbe:
-    httpGet:
-      path: '/actuator/health'
-      port: 8080
-    initialDelaySeconds: 10
-    timeoutSeconds: 2
-    periodSeconds: 5
-    failureThreshold: 10
-    
-```
-
-- 동일한 시나리오로 재배포 한 후 Availability 확인:
-```
-Transactions:                  71843 hits
-Availability:                 100.00 %
-Elapsed time:                 298.18 secs
-Data transferred:              14.21 MB
-Response time:                  0.00 secs
-Transaction rate:             241.12 trans/sec
-Throughput:                     0.04 MB/sec
-Concurrency:                    0.95
-Successful transactions:       71843
-Failed transactions:               0
-Longest transaction:            0.50
-Shortest transaction:           0.00
-
-```
-
-배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.

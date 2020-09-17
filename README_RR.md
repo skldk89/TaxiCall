@@ -606,6 +606,8 @@ HTTP/1.1 200     0.01 secs:     206 bytes ==> GET  /
 :
 
 ```
+![#40](https://github.com/skldk89/TaxiCall/blob/master/Image/%2340.png)
+![#41](https://github.com/skldk89/TaxiCall/blob/master/Image/%2341.png)
 
 - CI/CD 파이프라인을 통해 새버전으로 재배포 작업함
 Git hook 연동 설정되어 Github의 소스 변경 발생 시 자동 빌드 배포됨

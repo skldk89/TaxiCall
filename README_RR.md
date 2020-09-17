@@ -361,12 +361,12 @@ pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 �
 - CodeBuild 기반으로 CI/CD 파이프라인 구성
 MSA 서비스별 CodeBuild 프로젝트 생성하여  CI/CD 파이프라인 구성
 
-![#019](https://github.com/skldk89/TaxiCall/blob/master/Image/%23019.png)
+![#19](https://github.com/skldk89/TaxiCall/blob/master/Image/%2319.png)
 
 - Git Hook 연결
 연결한 Github의 소스 변경 발생 시 자동으로 빌드 및 배포 되도록 Git Hook 연결 설정
 
-![#020](https://github.com/skldk89/TaxiCall/blob/master/Image/%23020.png)
+![#20](https://github.com/skldk89/TaxiCall/blob/master/Image/%2320.png)
 
 
 ## 동기식 호출 / 서킷 브레이킹 / 장애격리
@@ -383,20 +383,20 @@ kubectl label namespace istio-cb-ns istio-injection=enabled
 - 동시사용자 10명
 - 5초 동안 실시
 ```
-$siege -c10 -t5S -v  http://a-driver:8080
+$siege -c10 -t5S -v  http://admin03-owner:8080
 ```
 ![#021](https://github.com/skldk89/TaxiCall/blob/master/Image/%23021.png)
 
 * 서킷 브레이킹을 위한 DestinationRule 적용
 ```
-#dr-driver.yaml
+#dr-owner.yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
-  name: dr-driver
+  name: dr-owner
   namespace: istio-cb-ns
 spec:
-  host: a-driver
+  host: a-owner
   trafficPolicy:
     connectionPool:
       http:
@@ -411,8 +411,8 @@ spec:
 
 
 ```
-$kubectl apply -f dr-driver.yaml
-$siege -c10 -t5S -v  http://a-driver:8080
+$kubectl apply -f dr-owner.yaml
+$siege -c10 -t5S -v  http://admin03-owner:8080
 ```
 ![#022](https://github.com/skldk89/TaxiCall/blob/master/Image/%23022.png)
 

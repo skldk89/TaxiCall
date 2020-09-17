@@ -4,8 +4,8 @@
 
 # repo
  1. 예약관리 : https://github.com/skldk89/Reservation.git
- 1. 상태관리 : https://github.com/skldk89/Management.git
  1. 식당관리 : https://github.com/skldk89/Owner.git
+ 1. 상태관리 : https://github.com/skldk89/Management.git
  1. 현황관리 : https://github.com/rladutp/reservationStatus.git
  1. 게이트웨이 : https://github.com/rladutp/gateway.git
 
@@ -33,9 +33,9 @@
 
 ## 기능적 요구사항
 1. 고객이 식당을 예약(고객명, 일자)한다.
-1. Management 에서 호출을 받아서 식당 주인에게 체크할 것을 요청한다.(Sync)
-1. 식당 주인은 받은 호출을 수락하거나 거절한다.(Async)
-1. Management에서 변경사항을 접수 받는다.
+1. 상태 관리에서 요청된 예약을 받아서 식당 주인에게 전달한다.(Sync)
+1. 식당 주인은 받은 예약 정보를 수락하거나 거절한다.(Async)
+1. 상태 관리에서 변경사항을 접수 받는다.
 1. 예약 수락 시 고객에게 수락 되었음을 공유한다.(Async)
 1. 예약 거절 시 고객에게 거절되었음을 공유한다.(Async)
 1. 현황을 조회한다.
@@ -45,7 +45,7 @@
     1. 고객의 예약을 식당 주인이 수락/거절 가능하다. > Sync
     1. 식당 주인이 거절하면 요청 예약의 상태가 변경된다. > Async
 1. 장애격리
-    1. 식당 관리 서비스에 장애가 발생하더라도 고객 예약은 정상적으로 처리 가능하다.  > Async (event-driven)
+    1. 고객 예약 서비스에서 장애가 발생하더라도 식당 관리 서비스에서 주인이 승인/거절(취소) 가능하다  > Async (event-driven)
     1. 서킷 브레이킹 프레임워크 > istio-injection + DestinationRule
 1. 성능
     1. 고객은 본인의 예약 상태 및 이력 정보를 확인할 수 있다. > CQRS
@@ -74,9 +74,8 @@
 | 기능 | 이벤트 Payload |
 |---|:---:|
 | 1. 고객이 식당을 예약(고객명, 일자)한다. |![#24](https://github.com/skldk89/TaxiCall/blob/master/Image/%2324.png)</br>![#25](https://github.com/skldk89/TaxiCall/blob/master/Image/%2325.png)|
-| 2. Management 에서 호출을 받아서 식당 주인에게 체크할 것을 요청한다.(Sync)</br>3. 식당 주인은 받은 호출을 수락하거나 거절한다.(Async)</br>4. Management에서 변경사항을 접수 받는다.</br>5. 예약 수락 시 고객에게 수락 되었음을 공유한다.(Async)</br>6. 예약 거절 시 고객에게 거절되었음을 공유한다.(Async) |![#27](https://github.com/skldk89/TaxiCall/blob/master/Image/%2327.png)</br>![#28](https://github.com/skldk89/TaxiCall/blob/master/Image/%2328.png)|
-| 7. 현황을 조회한다.| ![#29](https://github.com/skldk89/TaxiCall/blob/master/Image/%2329.png) |
-
+| 2. 상태 관리에서 요청된 예약을 받아서 식당 주인에게 전달한다.(Sync)</br>3. 식당 주인은 받은 예약 정보를 수락하거나 거절한다.(Async)</br>4. 식당 주인은 받은 예약 정보를 수락하거나 거절한다.(Async)</br>5. 상태 관리에서 변경사항을 접수 받는다.</br>6. 예약 수락 시 고객에게 수락 되었음을 공유한다.(Async)</br>7. 예약 거절 시 고객에게 거절되었음을 공유한다.(Async) |![#27](https://github.com/skldk89/TaxiCall/blob/master/Image/%2327.png)</br>![#28](https://github.com/skldk89/TaxiCall/blob/master/Image/%2328.png)|
+| 8. 현황을 조회한다.| ![#29](https://github.com/skldk89/TaxiCall/blob/master/Image/%2329.png) |
 
 ## DDD 의 적용
 
@@ -86,8 +85,8 @@
 | MSA | 기능 | port | 조회 API | Gateway 사용시 |
 |---|:---:|:---:|---|---|
 | Reservation | 예약 관리 | 8081 | http://localhost:8081/reservations | http://Reservation:8080/reservations |
-| Management | 상태 관리 | 8083 | http://localhost:8083/managements | http://Management:8080/managements |
 | Owner | 식당 관리 | 8082 | http://localhost:8082/owners | http://Owner:8080/owners |
+| Management | 상태 관리 | 8083 | http://localhost:8083/managements | http://Management:8080/managements |
 | OrderStatus | 현황 관리 | 8084 | http://localhost:8084/reservationStatuses | http://ReservationStatus:8080/reservationStatuses |
 
 ## Gateway 적용

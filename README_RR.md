@@ -376,7 +376,7 @@ Readiness Probe 미설정 시 무정지 재배포 가능여부 확인을 위해 
 
 - seige 로 배포작업 직전에 워크로드를 모니터링 함.
 ```
-$ siege -c1 -t300S -r20 -v  http://admin03-owner:8080
+$ siege -c1 -t300S -r20 -v  http://owner:8080
 
 The server is now under siege...
 

@@ -185,6 +185,37 @@ public interface OwnerService {
     
 ```
 
+- 상태관리 서비스에서는 예약 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다
+```
+@Service
+public class PolicyHandler{
+    @StreamListener(KafkaProcessor.INPUT)
+    public void onStringEventListener(@Payload String eventString){
+
+    }
+
+    @Autowired
+    ManagementRepository managementRepository;
+
+    @StreamListener(KafkaProcessor.INPUT)
+    public void wheneverReservationRequested_RequestConfirmReservation(@Payload ReservationRequested reservationRequested){
+
+        if(reservationRequested.isMe()){
+            System.out.println("##### listener RequestConfirmReservation : " + reservationRequested.toJson());
+            Management management = new Management();
+
+            management.setStatus("RequestedReservation");
+            management.setOwnerId(reservationRequested.getOwnerId());
+            management.setReservationId(reservationRequested.getReservationId());
+            management.setReservationDate(reservationRequested.getReservationDate());
+            management.setId(reservationRequested.getId());
+
+            managementRepository.save(management);
+        }
+    }
+
+}
+
 - 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 상태 관리 시스템이 장애가 나면 호출요청을 못 받는다는 것을 확인
 
 
@@ -199,7 +230,7 @@ http POST localhost:8081/reservations orderId=2 driverId=2 customerName="custome
 cd Management
 mvn spring-boot:run
 
-#고객검진요청 처리
+#고객 예약 요청 처리
 http POST localhost:8081/reservations orderId=1 driverId=1 customerName="customer1" reservationDate="20200916" status="SSS"   #Success
 http POST localhost:8081/reservations orderId=2 driverId=2 customerName="customer2" reservationDate="20200916" status="SSS"   #Success
 ```
@@ -212,47 +243,46 @@ http POST localhost:8081/reservations orderId=2 driverId=2 customerName="custome
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
 
-고객호출취소가 이루어진 후에 예약시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하였다.
+식당에서 승인/취소로 이루어진 후에 예약시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하였다.
  
-- 이를 위하여 고객호출신청 상태관리에 기록을 남긴 후에 곧바로 호출취소신청 되었다는 되었다는 도메인 이벤트를 카프카로 송출한다(Publish)
+- 이를 위하여 예약 상태관리에 기록을 남긴 후에 곧바로 호출 승인/취소신청 되었다는 되었다는 도메인 이벤트를 카프카로 송출한다(Publish)
  
 ```
 @Entity
 @Table(name="Management_table")
 public class Management {
 
-    @PostPersist
-    public void onPostPersist(){
-        System.out.println("## seq 0 :  "+this.getStatus());
-        System.out.println("## seq 1 ");
+   @PostUpdate
+    public void onPostUpdate(){
+        System.out.println("START1");
+        if(this.getStatus().equals("Approved")) {
+            System.out.println("test approved");
+            ReservationApporved reservationApporved = new ReservationApporved();
 
-        if(this.getStatus().equals("Ordered")) {
-            TaxiCall.external.Driver driver = new TaxiCall.external.Driver();
-            driver.setStatus("Ordered");
-            driver.setDriverId(this.getDriverId());
-            driver.setOrderId(this.getOrderId());
-            driver.setLocation(this.getLocation());
+            reservationApporved.setReservationId(this.getReservationId());
+            reservationApporved.setStatus(this.getStatus());
+            reservationApporved.setOwnerId(this.getOwnerId());
 
-            System.out.println(this.getDriverId() + "TEST 1 : " + this.getOrderId());
-
-            ManagementApplication.applicationContext.getBean(TaxiCall.external.DriverService.class)
-                    .checkOrder(driver);
-
-            System.out.println("AAAA");
+            BeanUtils.copyProperties(this, reservationApporved);
+            reservationApporved.publishAfterCommit();
         }
-        else if(this.getStatus().equals("OrderCanceled")) {
-            CancelOrderRequested cancelOrderRequested = new CancelOrderRequested();
 
-            cancelOrderRequested.setOrderId(this.getOrderId());
-            cancelOrderRequested.setStatus(this.getStatus());
-            cancelOrderRequested.setDriverId(this.getDriverId());
+        else if(this.getStatus().equals("Declined")) {
+            System.out.println("test declined");
+            ReservationCanceled reservationCanceled = new ReservationCanceled();
 
-            BeanUtils.copyProperties(this, cancelOrderRequested);
-            cancelOrderRequested.publishAfterCommit();
+            reservationCanceled.setId(this.getId());
+            reservationCanceled.setReservationId(this.getReservationId());
+            reservationCanceled.setStatus(this.getStatus());
+            reservationCanceled.setOwnerId(this.getOwnerId());
+
+            BeanUtils.copyProperties(this, reservationCanceled);
+            reservationCanceled.publishAfterCommit();
         }
     }
+
 ```
-- 상태관리 서비스에서는 호출취소신청 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다
+- 상태관리 서비스에서는 예약 승인/취소 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다
 
 ```
 @Service
@@ -261,44 +291,65 @@ public class PolicyHandler{
     public void onStringEventListener(@Payload String eventString){
 
     }
+
     @Autowired
-    DriverRepository driverRepository;
+    ManagementRepository managementRepository;
+
     @StreamListener(KafkaProcessor.INPUT)
-    public void wheneverCancelOrderRequested_ReceiveCancelOrder(@Payload CancelOrderRequested cancelOrderRequested){
+    public void wheneverReservationApproved_StatusChange(@Payload ReservationApproved reservationApproved){
 
-        if(cancelOrderRequested.isMe()){
-            System.out.println("##### listener ReceiveCancelOrder : " + cancelOrderRequested.toJson());
 
-            Driver driver = new Driver();
-            driverRepository.findById(Long.valueOf(cancelOrderRequested.getOrderId())).ifPresent((Driver)->{
-                Driver.setDriverId(cancelOrderRequested.getDriverId());
-                Driver.setStatus("OrderCanceled");
-                driverRepository.save(Driver);
+        if(reservationApproved.isMe()){
+            System.out.println("##### listener StatusChange : " + reservationApproved.toJson());
+
+            managementRepository.findById(Long.valueOf(reservationApproved.getReservationId())).ifPresent((Management)->{
+                Management.setOwnerId(reservationApproved.getOwnerId());
+                Management.setReservationDate(reservationApproved.getReservationDate());
+                Management.setStatus("Approved");
+                managementRepository.save(Management);
             });
 
+            System.out.println("reservationrequested end1");
         }
     }
+    @StreamListener(KafkaProcessor.INPUT)
+    public void wheneverReservationDeclined_StatusChange(@Payload ReservationDeclined reservationDeclined){
 
+        if(reservationDeclined.isMe()){
+            System.out.println("##### listener StatusChange : " + reservationDeclined.toJson());
+
+            System.out.println(reservationDeclined.toJson());
+            managementRepository.findById(Long.valueOf(reservationDeclined.getReservationId())).ifPresent((Management)->{
+                Management.setOwnerId(reservationDeclined.getOwnerId());
+                Management.setReservationDate(reservationDeclined.getReservationDate());
+                Management.setStatus("Declined");
+                managementRepository.save(Management);
+            });
+
+            System.out.println("reservationrequested end1");
+        }
+    }
 }
-```
-
-기사관리 시스템은 Taxi 호출과 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 기사 관리시스템이 유지보수로 인해 잠시 내려간 상태라도 호출 신청을 받는데 문제가 없다.
 
 ```
-#기사관리 서비스 (Driver) 를 잠시 내려놓음 (ctrl+c)
 
-#호출취소처리
-http PATCH localhost:8081/orders driverId=1 status= "OrderCanceled"   #Success
+예약 시스템은 식당 관리와 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 예약 관리시스템이 유지보수로 인해 잠시 내려간 상태라도 승인/취소 신청을 받는데 문제가 없다.
+
+```
+#예약 관리 서비스 (Reservation) 를 잠시 내려놓음 (ctrl+c)
+
+#예약 승인/거절
+http PATCH http://localhost:8082/owners/check?reservationId=1  #Success
 
 #예약관리상태 확인
-http localhost:8083/drivers     # 예약상태 안바뀜 확인
+http localhost:8081/resrvations     # 예약상태 안바뀜 확인
 
 #예약관리 서비스 기동
-cd Driver
+cd Reservation
 mvn spring-boot:run
 
 #예약관리상태 확인
-http localhost:8083/drivers     # 예약상태가 "취소됨"으로 확인
+http localhost:8081/resrvations     # 예약상태가 "승인/취소됨"으로 확인
 ```
 
 # 운영

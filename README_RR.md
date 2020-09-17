@@ -342,14 +342,14 @@ public class PolicyHandler{
 http PATCH http://localhost:8082/owners/check?reservationId=1  #Success
 
 #예약관리상태 확인
-http localhost:8081/resrvations     # 예약상태 안바뀜 확인
+http localhost:8081/reservations     # 예약상태 안바뀜 확인
 
 #예약관리 서비스 기동
 cd Reservation
 mvn spring-boot:run
 
 #예약관리상태 확인
-http localhost:8081/resrvations     # 예약상태가 "승인/취소됨"으로 확인
+http localhost:8081/reservations     # 예약상태가 "승인/취소됨"으로 확인
 ```
 
 # 운영

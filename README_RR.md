@@ -381,12 +381,20 @@ kubectl label namespace istio-cb-ns istio-injection=enabled
 ```
 
 * 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
-- 동시사용자 10명
-- 5초 동안 실시
+- 동시사용자 100명
+- 60초 동안 실시
 ```
-$siege -c10 -t5S -v  http://admin03-owner:8080
+$siege -c100 -t60S -r10  -v http://a9ef33930883f4c65a6c67007ec48a17-176394376.ap-northeast-2.elb.amazonaws.com:8080/owners
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.00 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.00 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.00 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /owners
 ```
-![#021](https://github.com/skldk89/TaxiCall/blob/master/Image/%23021.png)
 
 * 서킷 브레이킹을 위한 DestinationRule 적용
 ```
@@ -413,12 +421,34 @@ spec:
 
 ```
 $kubectl apply -f dr-owner.yaml
-$siege -c10 -t5S -v  http://admin03-owner:8080
-```
-![#022](https://github.com/skldk89/TaxiCall/blob/master/Image/%23022.png)
+$siege -c100 -t60S -r10  -v http://a9ef33930883f4c65a6c67007ec48a17-176394376.ap-northeast-2.elb.amazonaws.com:8080/owners
 
-* DestinationRule 적용되어 서킷 브레이킹 동작 확인 (kiali 화면)
-![#023](https://github.com/skldk89/TaxiCall/blob/master/Image/%23023.png)
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /owners
+HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /owners
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.01 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 503   0.01 secs:      81 bytes ==> GET  /owners
+HTTP/1.1 503   0.02 secs:      95 bytes ==> GET  /owners
+HTTP/1.1 503   0.01 secs:      95 bytes ==> GET  /owners
+HTTP/1.1 200   0.03 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 200   0.02 secs:    5650 bytes ==> GET  /owners
+HTTP/1.1 503   0.00 secs:      19 bytes ==> GET  /owners
+
+Transactions:                    194 hits
+Availability:                  16.68 %
+Elapsed time:                  59.76 secs
+Data transferred:               1.06 MB
+Response time:                  0.03 secs
+Transaction rate:               3.25 trans/sec
+Throughput:                     0.02 MB/sec
+Concurrency:                    0.10
+Successful transactions:         194
+Failed transactions:             969
+Longest transaction:            0.04
+Shortest transaction:           0.00
+```
 
 * 다시 부하 발생하여 DestinationRule 적용 제거하여 정상 처리 확인
 ```
